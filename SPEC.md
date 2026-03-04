@@ -165,9 +165,23 @@ colors:
     voice_ai_pink: "#FF6B9D"
 
 typography:
+  fonts:
+    headline:
+      name: "Telnyx Headline"
+      file: "brand/fonts/telnyx-headline.otf"
+      google_drive_id: "17GO1AgxUTIg4S4XLlK1M0hNlSiR_ro2u"
+    body:
+      name: "Telnyx Body"
+      file: "brand/fonts/telnyx-body.otf"
+      google_drive_id: "1at842pYVtO00A9VqjE-uXJTNxqlWGv5C"
   headline:
+    font: telnyx-headline
     max_words: 8
     weight: bold
+  subhead:
+    font: telnyx-body
+  cta:
+    font: telnyx-body
   text_elements_max: 3
   mobile_first: true
 
