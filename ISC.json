@@ -1,0 +1,369 @@
+{
+  "project": "AdGen Agent",
+  "source": "SPEC.md",
+  "generated_at": "2026-03-04T21:21:57.563497+00:00",
+  "effort_level": "deep",
+  "criteria_count": 40,
+  "criteria": [
+    {
+      "id": "ISC-001",
+      "category": "agent-configuration",
+      "statement": "AdGen agent has valid OpenClaw configuration JSON",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q '\"id\":\\s*\"adgen\"' $TARGET",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-002",
+      "category": "agent-configuration",
+      "statement": "Agent uses Claude Opus 4-6 as primary model",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q '\"primary\":\\s*\"anthropic/claude-opus-4-6\"' $TARGET",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-003",
+      "category": "routing",
+      "statement": "Slack channel routing configuration exists for creative ops",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q '\"channel\":\\s*\\[\"C_CREATIVE_OPS\"\\]' $TARGET",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-004",
+      "category": "workspace-structure",
+      "statement": "SOUL.md file exists in workspace directory",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "test -f $TARGET/SOUL.md",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-005",
+      "category": "workspace-structure",
+      "statement": "MEMORY.md file exists in workspace directory",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "test -f $TARGET/MEMORY.md",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-006",
+      "category": "workspace-structure",
+      "statement": "TOOLS.md file exists in workspace directory",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "test -f $TARGET/TOOLS.md",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-007",
+      "category": "brand-assets",
+      "statement": "Brand rules YAML file exists with color definitions",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q 'colors:' $TARGET/brand/rules.yaml",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-008",
+      "category": "brand-assets",
+      "statement": "Brand colors include black, cream, green, citron values",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q '#000000|#F5F0E8|#00C26E|#D4E510' $TARGET/brand/rules.yaml",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-009",
+      "category": "brand-assets",
+      "statement": "Logo variants directory contains cream and black wordmarks",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "ls $TARGET/brand/logos/wordmark-cream.png $TARGET/brand/logos/wordmark-black.png >/dev/null 2>&1",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-010",
+      "category": "brand-assets",
+      "statement": "Imagery directory has browsable index with tags",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "test -f $TARGET/brand/imagery/index.md",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-011",
+      "category": "templates",
+      "statement": "Eight template markdown files exist in templates directory",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "test $(ls $TARGET/templates/*.md | wc -l) -eq 8",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-012",
+      "category": "templates",
+      "statement": "Dark hero left template includes layout instructions",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q '## Layout' $TARGET/templates/dark-hero-left.md",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-013",
+      "category": "templates",
+      "statement": "Templates contain render parameter specifications",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q '## Render params' $TARGET/templates/",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-014",
+      "category": "render-script",
+      "statement": "render.py script exists in scripts directory",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "test -f $TARGET/scripts/render.py",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-015",
+      "category": "render-script",
+      "statement": "render.py accepts JSON input from stdin",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q 'json\\.load|input\\(\\)|stdin' $TARGET/scripts/render.py",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-016",
+      "category": "render-script",
+      "statement": "render.py outputs PNG files to specified path",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q '\\.save\\(|PIL|Pillow' $TARGET/scripts/render.py",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-017",
+      "category": "dependencies",
+      "statement": "Pillow is listed as required dependency",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -qi 'pillow|PIL' $TARGET",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-018",
+      "category": "dependencies",
+      "statement": "OpenAI SDK is available for DALL-E integration",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -qi 'openai' $TARGET",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-019",
+      "category": "workspace-structure",
+      "statement": "Output directory exists for generated assets staging",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "test -d $TARGET/output",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-020",
+      "category": "brand-assets",
+      "statement": "Typography rules specify max headline word count",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q 'max_words.*8' $TARGET/brand/rules.yaml",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-021",
+      "category": "brand-assets",
+      "statement": "Logo selection rules exist for backgrounds",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q 'dark_background.*cream|light_background.*black' $TARGET/brand/rules.yaml",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-022",
+      "category": "image-library",
+      "statement": "Product imagery subdirectory exists with assets",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "test -d $TARGET/brand/imagery/product",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-023",
+      "category": "image-library",
+      "statement": "Abstract imagery subdirectory exists for generated assets",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "test -d $TARGET/brand/imagery/abstract",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-024",
+      "category": "formats",
+      "statement": "Template supports multiple format specifications",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q 'google_300x250|linkedin_1200x1200|format' $TARGET/templates/",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-025",
+      "category": "workflow",
+      "statement": "Brief to asset workflow completes under two minutes",
+      "testable": false,
+      "test_type": "runtime",
+      "test_command": "",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-026",
+      "category": "interaction",
+      "statement": "Agent responds to Slack mentions with @adgen",
+      "testable": false,
+      "test_type": "runtime",
+      "test_command": "",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-027",
+      "category": "quality-control",
+      "statement": "Claude checks brand compliance on generated outputs",
+      "testable": false,
+      "test_type": "manual",
+      "test_command": "",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-028",
+      "category": "revision",
+      "statement": "Revision requests trigger parameter adjustment and re-render",
+      "testable": false,
+      "test_type": "runtime",
+      "test_command": "",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-029",
+      "category": "storage",
+      "statement": "Telnyx Storage buckets configured for brand assets",
+      "testable": false,
+      "test_type": "runtime",
+      "test_command": "",
+      "priority": "must-have"
+    },
+    {
+      "id": "ISC-030",
+      "category": "image-upload",
+      "statement": "Slack image uploads save to brand library",
+      "testable": false,
+      "test_type": "runtime",
+      "test_command": "",
+      "priority": "nice-to-have"
+    },
+    {
+      "id": "ISC-031",
+      "category": "multi-format",
+      "statement": "Abyssale API integration exports multiple format variants",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -qi 'abyssale' $TARGET",
+      "priority": "nice-to-have"
+    },
+    {
+      "id": "ISC-032",
+      "category": "creative-memory",
+      "statement": "MEMORY.md tracks persona-specific performance patterns",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -q 'CIO|Developer|persona' $TARGET/MEMORY.md",
+      "priority": "nice-to-have"
+    },
+    {
+      "id": "ISC-033",
+      "category": "variant-generation",
+      "statement": "System generates multiple variants per brief request",
+      "testable": false,
+      "test_type": "runtime",
+      "test_command": "",
+      "priority": "nice-to-have"
+    },
+    {
+      "id": "ISC-034",
+      "category": "asset-graph",
+      "statement": "Asset metadata JSONs enable queryable creative history",
+      "testable": false,
+      "test_type": "runtime",
+      "test_command": "",
+      "priority": "nice-to-have"
+    },
+    {
+      "id": "ISC-035",
+      "category": "embeddings",
+      "statement": "Telnyx Embeddings enables asset search queries",
+      "testable": false,
+      "test_type": "runtime",
+      "test_command": "",
+      "priority": "nice-to-have"
+    },
+    {
+      "id": "ISC-036",
+      "category": "image-generation",
+      "statement": "DALL-E integration generates abstract imagery on demand",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -qi 'dall.?e' $TARGET",
+      "priority": "nice-to-have"
+    },
+    {
+      "id": "ISC-037",
+      "category": "image-generation",
+      "statement": "Nano Banana integration provides alternative generation option",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "rg -qi 'nano.?banana' $TARGET",
+      "priority": "nice-to-have"
+    },
+    {
+      "id": "ISC-038",
+      "category": "library-health",
+      "statement": "Library health check reports category gaps",
+      "testable": false,
+      "test_type": "runtime",
+      "test_command": "",
+      "priority": "nice-to-have"
+    },
+    {
+      "id": "ISC-039",
+      "category": "codebase-size",
+      "statement": "Total codebase remains under 500 lines",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "test $(wc -l $TARGET/scripts/render.py | cut -d' ' -f1) -lt 500",
+      "priority": "nice-to-have"
+    },
+    {
+      "id": "ISC-040",
+      "category": "architecture",
+      "statement": "No custom database or server infrastructure required",
+      "testable": true,
+      "test_type": "grep",
+      "test_command": "! rg -qi 'database|server|express|flask|django' $TARGET",
+      "priority": "must-have"
+    }
+  ]
+}
