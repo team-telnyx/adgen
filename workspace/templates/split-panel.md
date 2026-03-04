@@ -23,59 +23,17 @@
 {
   "template": "split-panel",
   "image_side": "left",
-  "image_zone": {
-    "x_pct": 0,
-    "y_pct": 0,
-    "w_pct": 50,
-    "h_pct": 100,
-    "object_fit": "cover"
-  },
-  "text_panel": {
-    "x_pct": 50,
-    "y_pct": 0,
-    "w_pct": 50,
-    "h_pct": 100,
-    "bg_color": "#000000"
-  },
-  "headline_zone": {
-    "x_pct": 55,
-    "y_pct": 25,
-    "w_pct": 40,
-    "color": "#F5F0E8",
-    "font_weight": "bold",
-    "font_size": 60
-  },
-  "subhead_zone": {
-    "x_pct": 55,
-    "y_pct": 48,
-    "w_pct": 40,
-    "color": "#F5F0E8",
-    "opacity": 0.7,
-    "font_size": 28
-  },
-  "cta_zone": {
-    "x_pct": 55,
-    "y_pct": 75,
-    "style": "pill",
-    "bg_color": "accent",
-    "text_color": "#000000"
-  },
-  "logo_zone": {
-    "position": "bottom-right",
-    "variant": "wordmark-cream",
-    "clearspace": 48
-  },
-  "divider": {
-    "enabled": false,
-    "x_pct": 50,
-    "color": "accent",
-    "thickness": 3
-  }
+  "image_zone": {"x_pct": 0, "y_pct": 0, "w_pct": 50, "h_pct": 100, "object_fit": "cover"},
+  "text_panel": {"x_pct": 50, "y_pct": 0, "w_pct": 50, "h_pct": 100, "bg_color": "#000000"},
+  "headline_zone": {"x_pct": 55, "y_pct": 25, "w_pct": 40, "color": "#F5F0E8", "font_weight": "bold", "font_size": 60},
+  "subhead_zone": {"x_pct": 55, "y_pct": 48, "w_pct": 40, "color": "#F5F0E8", "opacity": 0.7, "font_size": 28},
+  "cta_zone": {"x_pct": 55, "y_pct": 75, "style": "pill", "bg_color": "accent", "text_color": "#000000"},
+  "logo_zone": {"position": "bottom-right", "variant": "wordmark-cream", "clearspace": 48},
+  "divider": {"enabled": false, "x_pct": 50, "color": "accent", "thickness": 3}
 }
 ```
 
 ## Format Adjustments
-
 - **linkedin_single (1200×1200):** Master size — true 50/50 split works well at this ratio
 - **linkedin_carousel (1080×1080):** Same layout, slightly reduce text font sizes
 - **google_rectangle (300×250):** Stack vertically — image top 50%, text bottom 50%, headline + CTA only
@@ -85,3 +43,17 @@
 - **twitter_single (1200×675):** 45/55 split (image/text) — text needs more horizontal space at this ratio
 - **meta_feed (1080×1080):** Same as master
 - **meta_stories (1080×1920):** Horizontal split becomes vertical — image top 55%, text bottom 45%
+
+## Supported Formats
+
+| Format | Size | Platform |
+|--------|------|----------|
+| linkedin_1200x1200 | 1200×1200 | LinkedIn feed |
+| linkedin_1200x627 | 1200×627 | LinkedIn landscape |
+| meta_1080x1080 | 1080×1080 | Meta feed |
+| meta_stories | 1080×1920 | Meta/IG stories |
+| google_rectangle | 300×250 | Google Display |
+| google_leaderboard | 728×90 | Google Display |
+| google_skyscraper | 160×600 | Google Display |
+| reddit_1080x1350 | 1080×1350 | Reddit feed |
+| x_1600x900 | 1600×900 | X/Twitter |

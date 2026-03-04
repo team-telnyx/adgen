@@ -23,56 +23,16 @@
 {
   "template": "testimonial",
   "background": "#000000",
-  "quote_mark_zone": {
-    "x_pct": 8,
-    "y_pct": 12,
-    "character": "\u201C",
-    "color": "accent",
-    "font_size": 160,
-    "opacity": 0.3
-  },
-  "quote_zone": {
-    "x_pct": 12,
-    "y_pct": 28,
-    "w_pct": 76,
-    "align": "left",
-    "color": "#F5F0E8",
-    "font_style": "italic",
-    "font_size": 42,
-    "line_height": 1.5
-  },
-  "attribution_zone": {
-    "x_pct": 12,
-    "y_pct": 65,
-    "w_pct": 76,
-    "color": "accent",
-    "font_weight": "bold",
-    "font_size": 24
-  },
-  "headshot_zone": {
-    "enabled": false,
-    "x_pct": 12,
-    "y_pct": 62,
-    "size_px": 64,
-    "shape": "circle"
-  },
-  "cta_zone": {
-    "x_pct": 12,
-    "y_pct": 82,
-    "style": "pill",
-    "bg_color": "accent",
-    "text_color": "#000000"
-  },
-  "logo_zone": {
-    "position": "bottom-left",
-    "variant": "wordmark-cream",
-    "clearspace": 48
-  }
+  "quote_mark_zone": {"x_pct": 8, "y_pct": 12, "character": "\u201C", "color": "accent", "font_size": 160, "opacity": 0.3},
+  "quote_zone": {"x_pct": 12, "y_pct": 28, "w_pct": 76, "align": "left", "color": "#F5F0E8", "font_style": "italic", "font_size": 42, "line_height": 1.5},
+  "attribution_zone": {"x_pct": 12, "y_pct": 65, "w_pct": 76, "color": "accent", "font_weight": "bold", "font_size": 24},
+  "headshot_zone": {"enabled": false, "x_pct": 12, "y_pct": 62, "size_px": 64, "shape": "circle"},
+  "cta_zone": {"x_pct": 12, "y_pct": 82, "style": "pill", "bg_color": "accent", "text_color": "#000000"},
+  "logo_zone": {"position": "bottom-left", "variant": "wordmark-cream", "clearspace": 48}
 }
 ```
 
 ## Format Adjustments
-
 - **linkedin_single (1200×1200):** Master size — quote centered with ample vertical spacing
 - **linkedin_carousel (1080×1080):** Same layout, reduce quote font to 38px
 - **google_rectangle (300×250):** Short quote only (max 10 words), hide attribution detail, small quotation mark
@@ -82,3 +42,17 @@
 - **twitter_single (1200×675):** Quote left 60%, attribution + CTA right 35%
 - **meta_feed (1080×1080):** Same as master
 - **meta_stories (1080×1920):** Large quotation mark at 15%, quote in center 40%, attribution at 65%, CTA at 80%
+
+## Supported Formats
+
+| Format | Size | Platform |
+|--------|------|----------|
+| linkedin_1200x1200 | 1200×1200 | LinkedIn feed |
+| linkedin_1200x627 | 1200×627 | LinkedIn landscape |
+| meta_1080x1080 | 1080×1080 | Meta feed |
+| meta_stories | 1080×1920 | Meta/IG stories |
+| google_rectangle | 300×250 | Google Display |
+| google_leaderboard | 728×90 | Google Display |
+| google_skyscraper | 160×600 | Google Display |
+| reddit_1080x1350 | 1080×1350 | Reddit feed |
+| x_1600x900 | 1600×900 | X/Twitter |

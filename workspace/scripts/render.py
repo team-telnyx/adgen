@@ -45,36 +45,53 @@ DARK_TEMPLATES = {"dark-hero-left", "full-bleed-dark", "stats-hero", "gradient-a
 LIGHT_TEMPLATES = {"light-minimal", "split-panel", "product-screenshot"}
 
 # ---------------------------------------------------------------------------
-# Font helper
+# Font helper — Telnyx brand fonts (PP Formula Extrabold + Inter)
 # ---------------------------------------------------------------------------
-_font_cache: dict[tuple[int, bool], ImageFont.FreeTypeFont] = {}
+_font_cache: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
 
-FONT_PATHS = [
-    "/usr/share/fonts/truetype/inter/Inter-Regular.ttf",
-    "/usr/share/fonts/truetype/inter/Inter-Bold.ttf",
+BRAND_FONTS_DIR = os.path.join(os.path.dirname(__file__), "..", "brand", "fonts")
+
+# Headline: PP Formula Extrabold (one weight)
+HEADLINE_FONT = os.path.join(BRAND_FONTS_DIR, "PPFormula-Extrabold.otf")
+
+# Body: Inter (multiple weights)
+BODY_FONTS = {
+    "regular": os.path.join(BRAND_FONTS_DIR, "Inter-Regular.ttf"),
+    "medium": os.path.join(BRAND_FONTS_DIR, "Inter-Medium.ttf"),
+    "semibold": os.path.join(BRAND_FONTS_DIR, "Inter-SemiBold.ttf"),
+    "bold": os.path.join(BRAND_FONTS_DIR, "Inter-Bold.ttf"),
+}
+
+# System fallbacks (only if brand fonts missing)
+FALLBACK_PATHS = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
 ]
 
-def _find_font(bold: bool = False) -> str | None:
-    tag = "Bold" if bold else ""
-    for p in FONT_PATHS:
-        if tag in p and os.path.isfile(p):
-            return p
-    for p in FONT_PATHS:
-        if os.path.isfile(p):
-            return p
-    return None
 
-def load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    key = (size, bold)
+def load_font(size: int, bold: bool = False, headline: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    """Load brand font. headline=True uses PP Formula, else Inter."""
+    if headline:
+        key = ("headline", size)
+        path = HEADLINE_FONT
+    elif bold:
+        key = ("body-bold", size)
+        path = BODY_FONTS["bold"]
+    else:
+        key = ("body-regular", size)
+        path = BODY_FONTS["regular"]
+
     if key in _font_cache:
         return _font_cache[key]
-    path = _find_font(bold)
-    if path:
+
+    if os.path.isfile(path):
         font = ImageFont.truetype(path, size)
+        log.debug("Loaded font: %s @ %dpx", os.path.basename(path), size)
     else:
-        font = ImageFont.load_default()
+        log.warning("Brand font not found: %s — using fallback", path)
+        fallback = next((p for p in FALLBACK_PATHS if os.path.isfile(p)), None)
+        font = ImageFont.truetype(fallback, size) if fallback else ImageFont.load_default()
+
     _font_cache[key] = font
     return font
 
@@ -199,7 +216,7 @@ def render_dark_hero_left(canvas, draw, data, w, h):
     sh_size = _scale(26, w, h)
     cta_size = _scale(22, w, h)
     y = int(h * 0.20)
-    y = draw_text_block(draw, data["headline"], load_font(hl_size, True), tx, y, tw, fg)
+    y = draw_text_block(draw, data["headline"], load_font(hl_size, headline=True), tx, y, tw, fg)
     if data.get("subhead"):
         y = draw_text_block(draw, data["subhead"], load_font(sh_size), tx, y + 20, tw, sub_fg)
     if data.get("cta"):
@@ -213,7 +230,7 @@ def render_light_minimal(canvas, draw, data, w, h):
     tw = int(w * 0.70)
     tx = (w - tw) // 2
     y = int(h * 0.30)
-    y = draw_text_block(draw, data["headline"], load_font(hl_size, True), tx, y, tw, fg)
+    y = draw_text_block(draw, data["headline"], load_font(hl_size, headline=True), tx, y, tw, fg)
     if data.get("subhead"):
         y = draw_text_block(draw, data["subhead"], load_font(sh_size), tx, y + 16, tw, sub_fg)
     if data.get("cta"):
@@ -240,7 +257,7 @@ def render_split_panel(canvas, draw, data, w, h):
     sh_size = _scale(22, w, h)
     cta_size = _scale(20, w, h)
     y = int(h * 0.25)
-    y = draw_text_block(draw, data["headline"], load_font(hl_size, True), tx, y, tw, fg)
+    y = draw_text_block(draw, data["headline"], load_font(hl_size, headline=True), tx, y, tw, fg)
     if data.get("subhead"):
         y = draw_text_block(draw, data["subhead"], load_font(sh_size), tx, y + 16, tw, sub_fg)
     if data.get("cta"):
@@ -261,7 +278,7 @@ def render_full_bleed_dark(canvas, draw, data, w, h):
     sh_size = _scale(26, w, h)
     cta_size = _scale(22, w, h)
     y = int(h * 0.30)
-    y = draw_text_block(draw, data["headline"], load_font(hl_size, True), tx, y, tw, "#FFFFFF")
+    y = draw_text_block(draw, data["headline"], load_font(hl_size, headline=True), tx, y, tw, "#FFFFFF")
     if data.get("subhead"):
         y = draw_text_block(draw, data["subhead"], load_font(sh_size), tx, y + 20, tw, (255,255,255,180))
     if data.get("cta"):
@@ -277,12 +294,12 @@ def render_stats_hero(canvas, draw, data, w, h):
     # Auto-size stat text to fit within 80% canvas width
     stat_size = _scale(120, w, h)
     while stat_size > 24:
-        stat_font = load_font(stat_size, True)
+        stat_font = load_font(stat_size, headline=True)
         bbox = draw.textbbox((0, 0), headline, font=stat_font)
         if bbox[2] - bbox[0] <= tw:
             break
         stat_size -= 4
-    stat_font = load_font(stat_size, True)
+    stat_font = load_font(stat_size, headline=True)
     bbox = draw.textbbox((0, 0), headline, font=stat_font)
     sw = bbox[2] - bbox[0]
     draw.text(((w - sw) // 2, int(h * 0.18)), headline, font=stat_font, fill=hex_to_rgb(accent))
@@ -311,7 +328,7 @@ def render_gradient_accent(canvas, draw, data, w, h):
     sh_size = _scale(24, w, h)
     cta_size = _scale(20, w, h)
     y = int(h * 0.28)
-    y = draw_text_block(draw, data["headline"], load_font(hl_size, True), tx, y, tw, fg)
+    y = draw_text_block(draw, data["headline"], load_font(hl_size, headline=True), tx, y, tw, fg)
     if data.get("subhead"):
         y = draw_text_block(draw, data["subhead"], load_font(sh_size), tx, y + 16, tw, sub_fg)
     if data.get("cta"):
@@ -340,7 +357,7 @@ def render_product_screenshot(canvas, draw, data, w, h):
     tw = int(w * 0.80)
     tx = (w - tw) // 2
     y = int(h * 0.06)
-    y = draw_text_block(draw, data["headline"], load_font(hl_size, True), tx, y, tw, fg)
+    y = draw_text_block(draw, data["headline"], load_font(hl_size, headline=True), tx, y, tw, fg)
     if data.get("subhead"):
         y = draw_text_block(draw, data["subhead"], load_font(sh_size), tx, y + 12, tw, sub_fg)
     if hero:

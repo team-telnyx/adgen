@@ -8,5 +8,12 @@
     "name": "AdGen",
     "emoji": "🎨"
   },
-  "workspace": "~/.openclaw/agents/adgen/workspace"
+  "workspace": "~/.openclaw/agents/adgen/workspace",
+  "routing": {
+    "channels": ["C_CREATIVE_OPS"],
+    "slack": {
+      "mention": "@adgen",
+      "threads": true
+    }
+  }
 }

@@ -23,56 +23,16 @@
 {
   "template": "stats-hero",
   "background": "#000000",
-  "stat_zone": {
-    "x_pct": 10,
-    "y_pct": 18,
-    "w_pct": 80,
-    "align": "left",
-    "color": "accent",
-    "font_weight": "bold",
-    "font_size": 144
-  },
-  "stat_unit_zone": {
-    "x_pct": 10,
-    "y_pct": 42,
-    "w_pct": 60,
-    "color": "#F5F0E8",
-    "font_size": 36,
-    "opacity": 0.8
-  },
-  "headline_zone": {
-    "x_pct": 10,
-    "y_pct": 55,
-    "w_pct": 70,
-    "color": "#F5F0E8",
-    "font_weight": "bold",
-    "font_size": 48
-  },
-  "subhead_zone": {
-    "x_pct": 10,
-    "y_pct": 70,
-    "w_pct": 65,
-    "color": "#F5F0E8",
-    "opacity": 0.6,
-    "font_size": 28
-  },
-  "cta_zone": {
-    "x_pct": 10,
-    "y_pct": 85,
-    "style": "pill",
-    "bg_color": "accent",
-    "text_color": "#000000"
-  },
-  "logo_zone": {
-    "position": "bottom-right",
-    "variant": "wordmark-cream",
-    "clearspace": 48
-  }
+  "stat_zone": {"x_pct": 10, "y_pct": 18, "w_pct": 80, "align": "left", "color": "accent", "font_weight": "bold", "font_size": 144},
+  "stat_unit_zone": {"x_pct": 10, "y_pct": 42, "w_pct": 60, "color": "#F5F0E8", "font_size": 36, "opacity": 0.8},
+  "headline_zone": {"x_pct": 10, "y_pct": 55, "w_pct": 70, "color": "#F5F0E8", "font_weight": "bold", "font_size": 48},
+  "subhead_zone": {"x_pct": 10, "y_pct": 70, "w_pct": 65, "color": "#F5F0E8", "opacity": 0.6, "font_size": 28},
+  "cta_zone": {"x_pct": 10, "y_pct": 85, "style": "pill", "bg_color": "accent", "text_color": "#000000"},
+  "logo_zone": {"position": "bottom-right", "variant": "wordmark-cream", "clearspace": 48}
 }
 ```
 
 ## Format Adjustments
-
 - **linkedin_single (1200×1200):** Master size — stat dominates upper half, text in lower half
 - **linkedin_carousel (1080×1080):** Same layout, stat at 130px
 - **google_rectangle (300×250):** Stat number + headline only, hide subhead, stat at 80px, CTA compact
@@ -82,3 +42,17 @@
 - **twitter_single (1200×675):** Stat left 40%, headline + CTA right 55%
 - **meta_feed (1080×1080):** Same as master
 - **meta_stories (1080×1920):** Stat centered in upper third (180px), headline in center, CTA in lower quarter
+
+## Supported Formats
+
+| Format | Size | Platform |
+|--------|------|----------|
+| linkedin_1200x1200 | 1200×1200 | LinkedIn feed |
+| linkedin_1200x627 | 1200×627 | LinkedIn landscape |
+| meta_1080x1080 | 1080×1080 | Meta feed |
+| meta_stories | 1080×1920 | Meta/IG stories |
+| google_rectangle | 300×250 | Google Display |
+| google_leaderboard | 728×90 | Google Display |
+| google_skyscraper | 160×600 | Google Display |
+| reddit_1080x1350 | 1080×1350 | Reddit feed |
+| x_1600x900 | 1600×900 | X/Twitter |
