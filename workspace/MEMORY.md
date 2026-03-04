@@ -2,37 +2,61 @@
 
 ## Creative Patterns
 
-### CIO Healthcare
-- Template: dark-hero-left performs best for executive authority
-- Accent: citron for stat callouts, green for CTAs
-- Imagery: product screenshots (portal-dashboard) > abstract
-- Headlines: stat-driven ("40% reduction") outperforms benefit-driven
-- Tone: authoritative, data-backed, minimal text
+### By Persona
+#### CIO / Executive
+- Preferred template: dark-hero-left
+- Accent: citron on dark backgrounds
+- Imagery: product screenshots > abstract
+- Headlines: stat-driven ("40% reduction", "3x faster")
+- Tone: authoritative, results-focused
 
-### CIO Enterprise
-- Template: dark-hero-left or stats-hero
-- Accent: green preferred for professional tone
-- Imagery: product screenshots or data-center photography
-- Headlines: ROI-focused, specific numbers
+#### Developer / Technical
+- Preferred template: light-minimal
+- Accent: green
+- Imagery: code screenshots, API docs, terminal
+- Headlines: direct, technical, no marketing speak
+- Tone: peer-to-peer, practical
 
-### Developer API
-- Template: light-minimal
-- Accent: green for CTAs
-- Imagery: product screenshots (api-docs-screen, code samples)
-- Headlines: direct and technical, no marketing speak
-- Tone: peer-to-peer, show-don't-tell
+#### DevOps / Infrastructure
+- Preferred template: split-panel or gradient-accent
+- Accent: green or citron
+- Imagery: network diagrams, architecture
+- Headlines: performance metrics, reliability stats
 
-### DevOps / Infrastructure
-- Template: full-bleed-dark or split-panel
-- Accent: citron for energy, green for stability
-- Imagery: abstract (network-pattern-dark), photography (data-center)
-- Headlines: performance metrics, uptime stats
+#### Marketing / Growth
+- Preferred template: full-bleed-dark or stats-hero
+- Accent: voice_ai_pink for AI campaigns
+- Imagery: abstract, conceptual
+- Headlines: benefit-driven, curiosity-driven
 
-### Marketing / Growth
-- Template: gradient-accent or light-minimal
-- Accent: voice_ai_pink for AI features, citron for engagement
-- Imagery: abstract patterns, bold gradients
-- Headlines: outcome-driven, conversational
+### By Campaign Type
+#### Product Launch
+- Template: dark-hero-left or full-bleed-dark
+- Multiple variants recommended (3-6)
+- Hero image: product screenshot
+
+#### ABM / Enterprise
+- Template: dark-hero-left
+- Stat-driven headline mandatory
+- Product screenshot hero
+
+#### Awareness / Brand
+- Template: gradient-accent or full-bleed-dark
+- Abstract/generated imagery
+- Shorter headlines (4-5 words)
+
+### Format Performance Notes
+- LinkedIn 1200x1200: Best for B2B engagement
+- Google 300x250: Hide subhead, headline max 5 words
+- Google 728x90: Headline + CTA only, skip hero
+- Meta Stories 1080x1920: Full vertical, more hero space
+
+### What NOT to Do
+- Never use citron text on cream backgrounds (contrast fail)
+- Never put more than 3 text elements on any format
+- Never use icon-only logo on formats wider than 728px
+- Never generate faces or real people
+- Avoid marketing buzzwords in developer-targeted ads
 
 ## Platform Insights
 

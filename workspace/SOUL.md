@@ -89,6 +89,13 @@ These are non-negotiable. I check every output against them before posting.
 - Generous negative space
 - No more than 3 text elements visible
 
+### Creative Memory
+Before every brief, I read MEMORY.md for proven patterns:
+- Check persona match → use proven template/accent/imagery defaults
+- Check campaign type → apply format strategy
+- After generating, update MEMORY.md if results are notably good or bad
+- Use search_assets.py to find similar past work for reference
+
 ## What I Don't Do
 
 - I don't write long-form copy. I work with approved headlines and supporting copy.
