@@ -1,0 +1,105 @@
+# AdGen Color Palette
+# Detailed color definitions with usage guidelines.
+
+palette:
+  primary:
+    black:
+      hex: "#000000"
+      rgb: [0, 0, 0]
+      usage:
+        - "Primary background for dark themes"
+        - "Text color on light backgrounds"
+        - "Logo variant for light backgrounds"
+      weight: "dominant — used for 60%+ of dark-theme layouts"
+
+    cream:
+      hex: "#F5F0E8"
+      rgb: [245, 240, 232]
+      usage:
+        - "Primary background for light themes"
+        - "Text color on dark backgrounds"
+        - "Logo variant for dark backgrounds"
+      weight: "dominant — used for 60%+ of light-theme layouts"
+
+  accent:
+    green:
+      hex: "#00C26E"
+      rgb: [0, 194, 110]
+      usage:
+        - "CTA buttons and interactive elements"
+        - "Success states and positive metrics"
+        - "Highlight bars and accent lines"
+        - "Secondary emphasis on dark backgrounds"
+      weight: "accent — sparingly, 10-15% of layout"
+
+    citron:
+      hex: "#D4E510"
+      rgb: [212, 229, 16]
+      usage:
+        - "Stat callouts and data highlights"
+        - "Alternative accent for A/B testing vs green"
+        - "High-energy campaigns"
+        - "Headlines needing maximum contrast on dark"
+      weight: "accent — sparingly, 10-15% of layout"
+      notes: "Higher CTR on LinkedIn for CIO personas (observed pattern)"
+
+    voice_ai_pink:
+      hex: "#FF6B9D"
+      rgb: [255, 107, 157]
+      usage:
+        - "Voice AI product campaigns"
+        - "AI-specific features and content"
+        - "Differentiation from core telecom palette"
+      weight: "accent — product-specific, use only for Voice AI"
+
+  utility:
+    dark_gray:
+      hex: "#1A1A1A"
+      rgb: [26, 26, 26]
+      usage:
+        - "Subtle background variation from pure black"
+        - "Card backgrounds on black layouts"
+
+    mid_gray:
+      hex: "#666666"
+      rgb: [102, 102, 102]
+      usage:
+        - "Subhead text at reduced opacity"
+        - "Metadata and secondary information"
+
+    light_gray:
+      hex: "#E5E0D8"
+      rgb: [229, 224, 216]
+      usage:
+        - "Subtle background variation from cream"
+        - "Dividers on light layouts"
+
+combinations:
+  high_contrast:
+    - background: "#000000"
+      text: "#F5F0E8"
+      accent: "#D4E510"
+      note: "Maximum readability, stat-driven ads"
+
+    - background: "#F5F0E8"
+      text: "#000000"
+      accent: "#00C26E"
+      note: "Clean, professional, developer-friendly"
+
+  brand_forward:
+    - background: "#000000"
+      text: "#F5F0E8"
+      accent: "#00C26E"
+      note: "Core Telnyx identity"
+
+    - background: "#000000"
+      text: "#F5F0E8"
+      accent: "#FF6B9D"
+      note: "Voice AI campaigns only"
+
+accessibility:
+  contrast_ratio_min: 4.5
+  notes:
+    - "All text-on-background combinations must meet WCAG AA"
+    - "Accent colors are used for UI elements, not body text"
+    - "Cream on black = 18.1:1 ratio (exceeds AAA)"

@@ -1,0 +1,73 @@
+# AdGen Brand Rules
+# Machine-readable brand governance. Claude reads this before every brief.
+
+colors:
+  primary:
+    black: "#000000"
+    cream: "#F5F0E8"
+  accent:
+    green: "#00C26E"
+    citron: "#D4E510"
+    voice_ai_pink: "#FF6B9D"
+
+typography:
+  headline:
+    max_words: 8
+    weight: bold
+    case: sentence
+  subhead:
+    max_words: 15
+    weight: regular
+    opacity: 0.7
+  cta:
+    max_words: 4
+    weight: bold
+    style: pill_button
+  text_elements_max: 3
+  mobile_first: true
+
+logo:
+  variants:
+    - wordmark-cream
+    - wordmark-black
+    - icon-cream
+    - icon-black
+  placement:
+    - upper-left
+    - lower-left
+  clearspace_px: 48
+  selection:
+    dark_background: cream
+    light_background: black
+    busy_area: icon_only
+    clean_area: full_wordmark
+
+layout:
+  single_focal_point: true
+  generous_negative_space: true
+  hierarchy: "headline → subhead → cta"
+  max_visual_elements: 4
+  bleed_allowed: true
+
+imagery:
+  curated_ratio: 0.50
+  generated_ratio: 0.35
+  composited_ratio: 0.15
+  min_resolution_px: 2400
+  formats:
+    - png
+    - jpg
+  rules:
+    - "Never generate faces or real products"
+    - "No text baked into hero images"
+    - "No logos baked into hero images"
+    - "Clean edges for bleed/crop zones"
+    - "Transparent PNG preferred for compositing"
+
+compliance:
+  checks:
+    - "Headline ≤ 8 words"
+    - "Single focal point"
+    - "Logo in allowed position with clearspace"
+    - "Only brand colors used"
+    - "Text elements ≤ 3"
