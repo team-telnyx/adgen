@@ -269,20 +269,24 @@ def render_full_bleed_dark(canvas, draw, data, w, h):
 
 def render_stats_hero(canvas, draw, data, w, h):
     bg, accent, dark, fg, sub_fg = _colors(data)
-    # Extract leading number/stat from headline
     headline = data["headline"]
-    stat_size = _scale(120, w, h)
-    hl_size = _scale(36, w, h)
     sh_size = _scale(22, w, h)
     cta_size = _scale(20, w, h)
     tw = int(w * 0.80)
     tx = (w - tw) // 2
-    # Draw big stat in accent color
+    # Auto-size stat text to fit within 80% canvas width
+    stat_size = _scale(120, w, h)
+    while stat_size > 24:
+        stat_font = load_font(stat_size, True)
+        bbox = draw.textbbox((0, 0), headline, font=stat_font)
+        if bbox[2] - bbox[0] <= tw:
+            break
+        stat_size -= 4
     stat_font = load_font(stat_size, True)
-    stat_bbox = draw.textbbox((0, 0), headline, font=stat_font)
-    sw = stat_bbox[2] - stat_bbox[0]
-    draw.text(((w - sw) // 2, int(h * 0.15)), headline, font=stat_font, fill=hex_to_rgb(accent))
-    log.info("stat rendered text=\"%s\" pos=center,%d", headline, int(h*0.15))
+    bbox = draw.textbbox((0, 0), headline, font=stat_font)
+    sw = bbox[2] - bbox[0]
+    draw.text(((w - sw) // 2, int(h * 0.18)), headline, font=stat_font, fill=hex_to_rgb(accent))
+    log.info("stat rendered text=\"%s\" size=%d pos=center,%d", headline, stat_size, int(h*0.18))
     y = int(h * 0.55)
     if data.get("subhead"):
         y = draw_text_block(draw, data["subhead"], load_font(sh_size), tx, y, tw, sub_fg)
