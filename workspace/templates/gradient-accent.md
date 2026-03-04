@@ -21,60 +21,16 @@
 ```json
 {
   "template": "gradient-accent",
-  "background": {
-    "type": "gradient",
-    "direction": "diagonal_bottom_right",
-    "stops": [
-      {"position": 0, "color": "#000000"},
-      {"position": 100, "color": "accent"}
-    ]
-  },
-  "headline_zone": {
-    "x_pct": 15,
-    "y_pct": 28,
-    "w_pct": 70,
-    "align": "center",
-    "color": "#F5F0E8",
-    "font_weight": "bold",
-    "font_size": 68
-  },
-  "subhead_zone": {
-    "x_pct": 20,
-    "y_pct": 50,
-    "w_pct": 60,
-    "align": "center",
-    "color": "#F5F0E8",
-    "opacity": 0.7,
-    "font_size": 32
-  },
-  "cta_zone": {
-    "x_pct": 30,
-    "y_pct": 72,
-    "w_pct": 40,
-    "style": "pill",
-    "bg_color": "#F5F0E8",
-    "text_color": "#000000"
-  },
-  "logo_zone": {
-    "position": "upper-left",
-    "variant": "wordmark-cream",
-    "clearspace": 48
-  },
-  "event_detail_zone": {
-    "enabled": false,
-    "x_pct": 20,
-    "y_pct": 22,
-    "w_pct": 60,
-    "align": "center",
-    "color": "accent",
-    "font_size": 24,
-    "font_weight": "bold"
-  }
+  "background": {"type": "gradient", "direction": "diagonal_bottom_right", "stops": [{"position": 0, "color": "#000000"}, {"position": 100, "color": "accent"}]},
+  "headline_zone": {"x_pct": 15, "y_pct": 28, "w_pct": 70, "align": "center", "color": "#F5F0E8", "font_weight": "bold", "font_size": 68},
+  "subhead_zone": {"x_pct": 20, "y_pct": 50, "w_pct": 60, "align": "center", "color": "#F5F0E8", "opacity": 0.7, "font_size": 32},
+  "cta_zone": {"x_pct": 30, "y_pct": 72, "w_pct": 40, "style": "pill", "bg_color": "#F5F0E8", "text_color": "#000000"},
+  "logo_zone": {"position": "upper-left", "variant": "wordmark-cream", "clearspace": 48},
+  "event_detail_zone": {"enabled": false, "x_pct": 20, "y_pct": 22, "w_pct": 60, "align": "center", "color": "accent", "font_size": 24, "font_weight": "bold"}
 }
 ```
 
 ## Format Adjustments
-
 - **linkedin_single (1200×1200):** Master size — centered text on diagonal gradient, balanced negative space
 - **linkedin_carousel (1080×1080):** Same layout, reduce fonts by 10%
 - **google_rectangle (300×250):** Headline (max 5 words) + CTA only, gradient simplified to vertical

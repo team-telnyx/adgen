@@ -48,3 +48,15 @@ PNG file at the specified output path.
 ## Telnyx Storage
 - `adgen-brand` bucket: curated image library
 - `adgen-output` bucket: generated assets + metadata JSONs
+
+## Telnyx Embeddings
+
+For semantic search over the asset library and creative history:
+```bash
+curl -s -X POST "https://api.telnyx.com/v2/ai/embeddings" \
+  -H "Authorization: Bearer $TELNYX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "thenlper/gte-large", "input": "search query"}'
+```
+Models: `thenlper/gte-large`, `intfloat/multilingual-e5-large`
+Use for: asset search, finding similar creatives, tagging recommendations.

@@ -23,56 +23,16 @@
 {
   "template": "stats-hero",
   "background": "#000000",
-  "stat_zone": {
-    "x_pct": 10,
-    "y_pct": 18,
-    "w_pct": 80,
-    "align": "left",
-    "color": "accent",
-    "font_weight": "bold",
-    "font_size": 144
-  },
-  "stat_unit_zone": {
-    "x_pct": 10,
-    "y_pct": 42,
-    "w_pct": 60,
-    "color": "#F5F0E8",
-    "font_size": 36,
-    "opacity": 0.8
-  },
-  "headline_zone": {
-    "x_pct": 10,
-    "y_pct": 55,
-    "w_pct": 70,
-    "color": "#F5F0E8",
-    "font_weight": "bold",
-    "font_size": 48
-  },
-  "subhead_zone": {
-    "x_pct": 10,
-    "y_pct": 70,
-    "w_pct": 65,
-    "color": "#F5F0E8",
-    "opacity": 0.6,
-    "font_size": 28
-  },
-  "cta_zone": {
-    "x_pct": 10,
-    "y_pct": 85,
-    "style": "pill",
-    "bg_color": "accent",
-    "text_color": "#000000"
-  },
-  "logo_zone": {
-    "position": "bottom-right",
-    "variant": "wordmark-cream",
-    "clearspace": 48
-  }
+  "stat_zone": {"x_pct": 10, "y_pct": 18, "w_pct": 80, "align": "left", "color": "accent", "font_weight": "bold", "font_size": 144},
+  "stat_unit_zone": {"x_pct": 10, "y_pct": 42, "w_pct": 60, "color": "#F5F0E8", "font_size": 36, "opacity": 0.8},
+  "headline_zone": {"x_pct": 10, "y_pct": 55, "w_pct": 70, "color": "#F5F0E8", "font_weight": "bold", "font_size": 48},
+  "subhead_zone": {"x_pct": 10, "y_pct": 70, "w_pct": 65, "color": "#F5F0E8", "opacity": 0.6, "font_size": 28},
+  "cta_zone": {"x_pct": 10, "y_pct": 85, "style": "pill", "bg_color": "accent", "text_color": "#000000"},
+  "logo_zone": {"position": "bottom-right", "variant": "wordmark-cream", "clearspace": 48}
 }
 ```
 
 ## Format Adjustments
-
 - **linkedin_single (1200×1200):** Master size — stat dominates upper half, text in lower half
 - **linkedin_carousel (1080×1080):** Same layout, stat at 130px
 - **google_rectangle (300×250):** Stat number + headline only, hide subhead, stat at 80px, CTA compact

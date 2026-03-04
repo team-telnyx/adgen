@@ -21,54 +21,16 @@
 ```json
 {
   "template": "full-bleed-dark",
-  "hero_zone": {
-    "x": 0,
-    "y": 0,
-    "w_pct": 100,
-    "h_pct": 100,
-    "object_fit": "cover"
-  },
-  "gradient_overlay": {
-    "direction": "bottom",
-    "start_opacity": 0.0,
-    "end_opacity": 0.85,
-    "start_pct": 40,
-    "end_pct": 100,
-    "color": "#000000"
-  },
-  "headline_zone": {
-    "x_pct": 8,
-    "y_pct": 65,
-    "w_pct": 60,
-    "color": "#F5F0E8",
-    "font_weight": "bold",
-    "font_size": 72
-  },
-  "subhead_zone": {
-    "x_pct": 8,
-    "y_pct": 78,
-    "w_pct": 55,
-    "color": "#F5F0E8",
-    "opacity": 0.7,
-    "font_size": 32
-  },
-  "cta_zone": {
-    "x_pct": 8,
-    "y_pct": 88,
-    "style": "pill",
-    "bg_color": "accent",
-    "text_color": "#000000"
-  },
-  "logo_zone": {
-    "position": "upper-left",
-    "variant": "icon-cream",
-    "clearspace": 48
-  }
+  "hero_zone": {"x": 0, "y": 0, "w_pct": 100, "h_pct": 100, "object_fit": "cover"},
+  "gradient_overlay": {"direction": "bottom", "start_opacity": 0.0, "end_opacity": 0.85, "start_pct": 40, "end_pct": 100, "color": "#000000"},
+  "headline_zone": {"x_pct": 8, "y_pct": 65, "w_pct": 60, "color": "#F5F0E8", "font_weight": "bold", "font_size": 72},
+  "subhead_zone": {"x_pct": 8, "y_pct": 78, "w_pct": 55, "color": "#F5F0E8", "opacity": 0.7, "font_size": 32},
+  "cta_zone": {"x_pct": 8, "y_pct": 88, "style": "pill", "bg_color": "accent", "text_color": "#000000"},
+  "logo_zone": {"position": "upper-left", "variant": "icon-cream", "clearspace": 48}
 }
 ```
 
 ## Format Adjustments
-
 - **linkedin_single (1200×1200):** Master size — full-bleed image, gradient bottom half, text anchored low
 - **linkedin_carousel (1080×1080):** Same layout, reduce headline to 64px
 - **google_rectangle (300×250):** Gradient covers bottom 60%, headline only (max 5 words) + small CTA, icon logo

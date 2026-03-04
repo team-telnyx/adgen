@@ -21,46 +21,15 @@
 {
   "template": "dark-hero-left",
   "background": "#000000",
-  "hero_zone": {
-    "x": 0,
-    "y": 0,
-    "w_pct": 55,
-    "h_pct": 100,
-    "bleed": true
-  },
-  "headline_zone": {
-    "x_pct": 60,
-    "y_pct": 20,
-    "w_pct": 35,
-    "color": "#F5F0E8",
-    "font_weight": "bold",
-    "font_size": 72
-  },
-  "subhead_zone": {
-    "x_pct": 60,
-    "y_pct": 45,
-    "w_pct": 35,
-    "color": "#F5F0E8",
-    "opacity": 0.7,
-    "font_size": 36
-  },
-  "cta_zone": {
-    "x_pct": 60,
-    "y_pct": 75,
-    "style": "pill",
-    "bg_color": "accent",
-    "text_color": "#000000"
-  },
-  "logo_zone": {
-    "position": "bottom-left",
-    "variant": "wordmark-cream",
-    "clearspace": 48
-  }
+  "hero_zone": {"x": 0, "y": 0, "w_pct": 55, "h_pct": 100, "bleed": true},
+  "headline_zone": {"x_pct": 60, "y_pct": 20, "w_pct": 35, "color": "#F5F0E8", "font_weight": "bold", "font_size": 72},
+  "subhead_zone": {"x_pct": 60, "y_pct": 45, "w_pct": 35, "color": "#F5F0E8", "opacity": 0.7, "font_size": 36},
+  "cta_zone": {"x_pct": 60, "y_pct": 75, "style": "pill", "bg_color": "accent", "text_color": "#000000"},
+  "logo_zone": {"position": "bottom-left", "variant": "wordmark-cream", "clearspace": 48}
 }
 ```
 
 ## Format Adjustments
-
 - **linkedin_single (1200×1200):** Master size — use all elements as described above
 - **linkedin_carousel (1080×1080):** Slightly reduce hero to 50%, increase headline font to 76px
 - **google_rectangle (300×250):** Hide subhead, headline max 5 words, increase font weight, hero shrinks to 45%

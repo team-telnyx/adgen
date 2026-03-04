@@ -11,15 +11,38 @@ colors:
     voice_ai_pink: "#FF6B9D"
 
 typography:
+  fonts:
+    headline:
+      name: "PP Formula Extrabold"
+      family: "PPFormula-Extrabold"
+      files:
+        otf: "fonts/PPFormula-Extrabold.otf"
+        ttf: "fonts/PPFormula-Extrabold.ttf"
+        woff2: "fonts/PPFormula-Extrabold.woff2"
+      usage: "All headlines, hero text, display type"
+    body:
+      name: "Inter"
+      family: "Inter"
+      files:
+        variable: "fonts/Inter-Variable.ttf"
+        regular: "fonts/Inter-Regular.ttf"
+        medium: "fonts/Inter-Medium.ttf"
+        semibold: "fonts/Inter-SemiBold.ttf"
+        bold: "fonts/Inter-Bold.ttf"
+      usage: "Subheads, body copy, CTAs, supporting text"
+  rule: "Never substitute with system fonts — PP Formula and Inter are the only approved typefaces"
   headline:
+    font: PPFormula-Extrabold
     max_words: 8
-    weight: bold
+    weight: extrabold
     case: sentence
   subhead:
+    font: Inter
     max_words: 15
-    weight: regular
+    weight: medium
     opacity: 0.7
   cta:
+    font: Inter
     max_words: 4
     weight: bold
     style: pill_button
