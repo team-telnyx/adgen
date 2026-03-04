@@ -39,3 +39,17 @@
 - **twitter_single (1200×675):** Hero left 45%, headline + CTA right, hide subhead
 - **meta_feed (1080×1080):** Same as master layout
 - **meta_stories (1080×1920):** Hero fills top 60% full-width, text block in bottom 40% on black background
+
+## Supported Formats
+
+| Format | Size | Platform |
+|--------|------|----------|
+| linkedin_1200x1200 | 1200×1200 | LinkedIn feed |
+| linkedin_1200x627 | 1200×627 | LinkedIn landscape |
+| meta_1080x1080 | 1080×1080 | Meta feed |
+| meta_stories | 1080×1920 | Meta/IG stories |
+| google_rectangle | 300×250 | Google Display |
+| google_leaderboard | 728×90 | Google Display |
+| google_skyscraper | 160×600 | Google Display |
+| reddit_1080x1350 | 1080×1350 | Reddit feed |
+| x_1600x900 | 1600×900 | X/Twitter |
