@@ -46,8 +46,39 @@ PNG file at the specified output path.
 - Call via Abyssale API
 
 ## Telnyx Storage
-- `adgen-brand` bucket: curated image library
-- `adgen-output` bucket: generated assets + metadata JSONs
+
+**Endpoint:** `https://us-central-1.telnyxcloudstorage.com` (S3-compatible)
+**API Key:** `~/.secrets/telnyx` (used as both access key and secret key)
+
+### Buckets
+
+| Bucket | Purpose |
+|--------|---------|
+| `adgen-brand` | Curated brand assets — logos, imagery, textures, product screenshots |
+| `adgen-output` | Generated ad creatives, campaign outputs, metadata JSONs |
+
+### storage.py — Upload / Download / List
+
+Pipe JSON to stdin. Reads API key from `~/.secrets/telnyx` at runtime.
+
+**Upload a brand asset:**
+```bash
+echo '{"action":"upload","bucket":"adgen-brand","local_path":"brand/imagery/product/portal-dashboard.png","remote_key":"imagery/product/portal-dashboard.png"}' | python3 scripts/storage.py
+```
+
+**Download a generated output:**
+```bash
+echo '{"action":"download","bucket":"adgen-output","remote_key":"healthcare-q2/linkedin.png","local_path":"output/downloaded.png"}' | python3 scripts/storage.py
+```
+
+**List objects with prefix:**
+```bash
+echo '{"action":"list","bucket":"adgen-brand","prefix":"imagery/"}' | python3 scripts/storage.py
+```
+
+**Environment overrides:**
+- `TELNYX_API_KEY` — use instead of `~/.secrets/telnyx`
+- `TELNYX_STORAGE_ENDPOINT` — override storage endpoint
 
 ## Telnyx Embeddings
 

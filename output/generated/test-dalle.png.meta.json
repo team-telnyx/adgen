@@ -1,0 +1,12 @@
+{
+  "asset_path": "output/generated/test-dalle.png",
+  "asset_exists": false,
+  "created_at": "2026-03-04T21:46:42.990762+00:00",
+  "updated_at": "2026-03-04T21:46:42.990762+00:00",
+  "campaign": "test-run",
+  "persona": "test",
+  "template": "none",
+  "headline": "Test Image",
+  "accent_color": "green",
+  "imagery_source": "dalle"
+}
