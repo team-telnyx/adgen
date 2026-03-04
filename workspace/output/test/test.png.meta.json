@@ -1,0 +1,12 @@
+{
+  "asset_path": "output/test/test.png",
+  "asset_exists": false,
+  "created_at": "2026-03-04T23:00:03.377224+00:00",
+  "updated_at": "2026-03-04T23:00:03.377224+00:00",
+  "campaign": "test",
+  "persona": "developer",
+  "template": "dark-hero-left",
+  "headline": "Test Ad",
+  "accent_color": "green",
+  "imagery_source": "curated"
+}
