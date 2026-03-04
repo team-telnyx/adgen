@@ -1,0 +1,12 @@
+{
+  "id": "adgen",
+  "name": "AdGen",
+  "model": {
+    "primary": "anthropic/claude-opus-4-6"
+  },
+  "identity": {
+    "name": "AdGen",
+    "emoji": "🎨"
+  },
+  "workspace": "~/.openclaw/agents/adgen/workspace"
+}
