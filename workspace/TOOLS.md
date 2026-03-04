@@ -60,3 +60,40 @@ curl -s -X POST "https://api.telnyx.com/v2/ai/embeddings" \
 ```
 Models: `thenlper/gte-large`, `intfloat/multilingual-e5-large`
 Use for: asset search, finding similar creatives, tagging recommendations.
+
+## Abyssale Templates (29 available)
+
+**API Key:** `~/.secrets/abyssale`
+**Catalog:** `brand/abyssale-templates.json`
+
+### Key Templates by Use Case
+
+| Use Case | Template | ID | Type |
+|----------|----------|----|------|
+| Display 300x250 | Display Single Image Ad 1 | 3902c53d | static |
+| Display 300x600 | Display Ad 1 | 2c966e99 | static |
+| Display 728x90 | Display ad horizontal 1 | 7323ba26 | static |
+| LinkedIn Video | CIP - LinkedIn Video | 1d8e159b | animated |
+| LinkedIn GIF | LinkedIn Organic GIF | 0fbafb13 | animated |
+| Social (AI) | AI Glossary - Social | 7b8f744f | static |
+| Blog Featured | RC Post Featured Image | d80699fc | static |
+| Release Notes | Release Note | 2f3bd587 | static |
+| Consumer Panel | Consumer Insight Panel | deb0ddd8 | static |
+| OG Image | Global #s og:image | 2f5d9304 | static |
+| Twitter Image | Global #s twitter:image | f89c0861 | static |
+| X Release Notes | x-release-notes | 03bdef36 | animated |
+
+### Generate via API
+```bash
+ABYSSALE_KEY=$(cat ~/.secrets/abyssale)
+curl -X POST "https://api.abyssale.com/banner/generate-multi-format" \
+  -H "x-api-key: $ABYSSALE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "template_id": "<template_id>",
+    "elements": {
+      "headline": {"text": "Your Headline"},
+      "image": {"image_url": "https://..."}
+    }
+  }'
+```
