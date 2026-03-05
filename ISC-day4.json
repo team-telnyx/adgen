@@ -1,0 +1,26 @@
+{
+  "name": "AdGen Day 4 — Abyssale Primary + AI Image Gen",
+  "spec": "SPEC.md",
+  "criteria": [
+    {"id": "ISC-D4-001", "statement": "pipeline.py calls generate_image.py for hero image before rendering"},
+    {"id": "ISC-D4-002", "statement": "DALL-E provider generates a real PNG hero image from a text prompt"},
+    {"id": "ISC-D4-003", "statement": "Gemini provider generates a real PNG hero image from a text prompt"},
+    {"id": "ISC-D4-004", "statement": "Generated hero image is uploaded to Telnyx Storage with a public URL"},
+    {"id": "ISC-D4-005", "statement": "pipeline.py fetches Abyssale template details to discover element names"},
+    {"id": "ISC-D4-006", "statement": "Brief fields are mapped to Abyssale template elements automatically"},
+    {"id": "ISC-D4-007", "statement": "Abyssale generate-multi-format API is called with hero URL and copy"},
+    {"id": "ISC-D4-008", "statement": "Abyssale-generated images are downloaded to local output directory"},
+    {"id": "ISC-D4-009", "statement": "Each downloaded asset has a metadata sidecar JSON"},
+    {"id": "ISC-D4-010", "statement": "Pillow render.py is fallback only, not primary renderer"},
+    {"id": "ISC-D4-011", "statement": "pipeline.py is under 300 lines"},
+    {"id": "ISC-D4-012", "statement": "All secrets read from ~/.secrets/ at runtime, never hardcoded"},
+    {"id": "ISC-D4-013", "statement": "Structured logging with timestamps in all scripts"},
+    {"id": "ISC-D4-014", "statement": "abyssale_export.py auto-discovers template elements via API"},
+    {"id": "ISC-D4-015", "statement": "SOUL.md documents image generation and Abyssale-primary rendering"},
+    {"id": "ISC-D4-016", "statement": "TOOLS.md documents new pipeline flow"},
+    {"id": "ISC-D4-017", "statement": "E2E test: brief → DALL-E hero → Abyssale render → downloaded PNG"},
+    {"id": "ISC-D4-018", "statement": "Output PNG is professional quality (not Pillow rectangles)"},
+    {"id": "ISC-D4-019", "statement": "No faces or real people generated in any image prompts"},
+    {"id": "ISC-D4-020", "statement": "Pipeline exits 0 on success, 1 on failure"}
+  ]
+}
