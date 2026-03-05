@@ -2,3 +2,4 @@ workspace/video/node_modules/
 workspace/video/dist/
 workspace/output/
 __pycache__/
+workspace/brand/library/embeddings.json
