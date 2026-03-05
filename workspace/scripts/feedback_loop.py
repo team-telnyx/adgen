@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Feedback Loop — record, query, and compute boosts for asset feedback.
-JSON stdin → JSON stdout. Append-only in brand/library/feedback.json."""
+"""Feedback Loop — record/query/boosts for asset feedback. JSON stdin/stdout."""
 import json, logging, sys, time
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -12,15 +11,12 @@ log = logging.getLogger("feedback_loop")
 logging.Formatter.converter = time.gmtime
 FEEDBACK = Path(__file__).resolve().parent.parent / "brand" / "library" / "feedback.json"
 
-
 def load():
     return json.loads(FEEDBACK.read_text()) if FEEDBACK.exists() else {"entries": []}
-
 
 def save(data):
     FEEDBACK.parent.mkdir(parents=True, exist_ok=True)
     FEEDBACK.write_text(json.dumps(data, indent=2))
-
 
 def record(data, cfg):
     entry = {"asset_path": cfg["asset_path"], "template_id": cfg.get("template_id", ""),
@@ -30,7 +26,6 @@ def record(data, cfg):
     save(data)
     log.info("recorded asset=%s persona=%s rating=%s", entry["asset_path"], entry["persona"], entry["rating"])
     return {"ok": True, "total_entries": len(data["entries"])}
-
 
 def query(data, cfg):
     persona = cfg.get("persona", "")
@@ -45,7 +40,6 @@ def query(data, cfg):
     log.info("query persona=%s → %d assets", persona, len(ranked))
     return {"results": ranked, "persona": persona}
 
-
 def boosts(data, cfg):
     persona, counts = cfg.get("persona", ""), defaultdict(float)
     for e in data["entries"]:
@@ -58,7 +52,6 @@ def boosts(data, cfg):
     result = {p: round(v, 4) for p, v in counts.items() if v != 0}
     log.info("boosts persona=%s → %d entries", persona, len(result))
     return {"boosts": result, "persona": persona}
-
 
 def main():
     try:
@@ -77,7 +70,6 @@ def main():
     else:
         log.error("unknown action: %s (expected record|query|boosts)", action); sys.exit(1)
     print(json.dumps(result, indent=2))
-
 
 if __name__ == "__main__":
     main()
