@@ -1,294 +1,193 @@
 #!/usr/bin/env python3
-"""Asset Cataloger — scans brand/library/ and builds semantic index with embeddings.
-Outputs brand/library/catalog.json and brand/library/embeddings.json."""
+"""Index the brand asset library → catalog.json + embeddings.json.
 
-import json, logging, os, re, sys, time
+Walks workspace/brand/library, extracts metadata, reads real image dimensions
+via Pillow, normalizes product names, filters artifacts, parses aspect ratios.
+"""
+import json, logging, os, re, sys
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.request import Request, urlopen
+from PIL import Image
 
-logging.basicConfig(format="[%(asctime)s] %(levelname)s %(message)s",
-                    datefmt="%Y-%m-%dT%H:%M:%SZ", level=logging.INFO, stream=sys.stderr)
 log = logging.getLogger("index_library")
-logging.Formatter.converter = time.gmtime
+logging.basicConfig(format="%(asctime)s [%(levelname)s] %(message)s", level=logging.INFO)
 
-LIBRARY = Path(__file__).resolve().parent.parent / "brand" / "library"
-IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
-ARCHIVE_MARKERS = {"zold", "zarchive", "old", "archive"}
-DIMENSION_RE = re.compile(r"(\d{3,4})x(\d{3,4})")
-BATCH_SIZE = 50
+WORKSPACE = Path(__file__).resolve().parent.parent
+LIBRARY = WORKSPACE / "brand" / "library"
+CATALOG_PATH = LIBRARY / "catalog.json"
+EMBED_PATH = LIBRARY / "embeddings.json"
+EMBED_URL = "https://api.telnyx.com/v2/ai/openai/embeddings"
+EMBED_MODEL = "thenlper/gte-large"
+IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
+VIDEO_EXTS = {".mp4", ".mov", ".webm"}
+ASSET_EXTS = IMAGE_EXTS | VIDEO_EXTS
+MIN_FILE_SIZE = 1024
 
-# ── Folder → type mapping ──
-FOLDER_TYPE_MAP = [
-    ("hero", "hero_image"), ("social", "social_asset"), ("icon", "icon"),
-    ("pattern", "background"), ("background", "background"), ("logo", "logo"),
-    ("badge", "badge"), ("headshot", "headshot"), ("photography", "photography"),
-    ("map", "map"), ("globe", "globe"), ("diagram", "diagram"),
-    ("promo", "promo"), ("feature", "product_feature"), ("how-it-works", "how_it_works"),
-    ("differentiator", "differentiator"), ("navigation", "ui_element"),
-    ("thumbnail", "thumbnail"), ("widget", "widget"),
+PRODUCT_NAMES = {
+    "voice ai": "Voice AI Agent", "voice api": "Voice API", "esim": "eSIM",
+    "rcs": "RCS", "ai assistant": "AI Assistant", "iot": "IoT SIM",
+    "sip": "SIP Trunking", "mobile voice": "Mobile Voice", "object storage": "Storage",
+}
+EXCLUDE_DIR_EXACT = {"source files"}
+EXCLUDE_PATH_SUBSTR = {"screenstudio"}
+EXCLUDE_EXTS = {".aep", ".ai", ".psd"}
+ASPECT_PATTERNS = [
+    (re.compile(r"[_\-]16[x\-]9", re.I), "landscape"),
+    (re.compile(r"[_\-]9[x\-]16", re.I), "vertical"),
+    (re.compile(r"[_\-]1[x\-]1", re.I), "square"),
+    (re.compile(r"[_\-]3[x\-]2", re.I), "landscape"),
 ]
-
-# ── Industry verticals ──
-VERTICALS = ["healthcare", "finance", "insurance", "logistics", "restaurant",
-             "retail", "travel", "automotive", "hospitality", "energy", "education"]
-
-# ── Products ──
-PRODUCTS = ["voice-ai", "voice ai", "voice-api", "voice api", "esim", "rcs",
-            "ai-assistant", "ai assistant", "mobile-voice", "mobile voice",
-            "object-storage", "storage", "tts", "sip", "messaging", "iot", "networking"]
-
-FORMAT_MAP = {
-    (1920, 1080): "landscape", (1080, 1920): "vertical", (1080, 1080): "square",
-    (1200, 1200): "square", (1200, 628): "landscape", (900, 620): "landscape",
+RETINA_RE = re.compile(r"@2x", re.I)
+DIMENSION_RE = re.compile(r"(\d{3,4})[\sx](\d{3,4})")
+INDUSTRY_KW = {
+    "healthcare": "healthcare", "health": "healthcare", "logistics": "logistics",
+    "travel": "travel", "finance": "finance", "fintech": "finance",
+    "retail": "retail", "insurance": "insurance", "restaurant": "restaurant",
+    "automotive": "automotive",
 }
-
-USABLE_MAP = {
-    "hero_image": ["linkedin_ad", "google_display", "blog_featured", "landing_page"],
-    "social_asset": ["social_post", "linkedin_ad", "meta_ad", "twitter_ad"],
-    "icon": ["email", "social_post", "presentation", "ui_element"],
-    "background": ["ad_background", "presentation", "landing_page"],
-    "logo": ["email_signature", "presentation", "ad_overlay"],
-    "product_feature": ["blog_featured", "linkedin_ad", "case_study"],
-    "photography": ["blog_featured", "linkedin_ad", "landing_page"],
-    "promo": ["social_post", "linkedin_ad", "google_display"],
+PRODUCT_TEXT_FIX = {
+    "Voice Ai": "Voice AI Agent", "Voice Api": "Voice API", "Esim": "eSIM",
+    "Rcs": "RCS", "Ai Assistant": "AI Assistant", "Iot": "IoT SIM",
+    "Sip": "SIP Trunking", "Object Storage": "Storage",
 }
 
 
-def is_archived(path: Path) -> bool:
-    parts_lower = [p.lower() for p in path.parts]
-    return any(m in part for part in parts_lower for m in ARCHIVE_MARKERS)
-
-
-def in_compressed(path: Path) -> bool:
-    return any("compressed" in p.lower() for p in path.parts)
-
-
-def extract_type(rel_path: Path) -> str:
-    path_lower = str(rel_path).lower()
-    for keyword, asset_type in FOLDER_TYPE_MAP:
-        if keyword in path_lower:
-            return asset_type
-    return "visual"
-
-
-def extract_dimensions(filename: str) -> tuple[str | None, str | None]:
-    m = DIMENSION_RE.search(filename)
-    if m:
-        w, h = int(m.group(1)), int(m.group(2))
-        dims = f"{w}x{h}"
-        fmt = FORMAT_MAP.get((w, h))
-        if not fmt:
-            fmt = "landscape" if w > h else ("vertical" if h > w else "square")
-        return dims, fmt
-    return None, None
-
-
-def extract_vertical(path_lower: str) -> str | None:
-    for v in VERTICALS:
-        if v in path_lower:
-            return v
-    return None
-
-
-def extract_product(path_lower: str) -> str | None:
-    for p in PRODUCTS:
-        if p in path_lower:
-            return p.replace("-", " ").replace("_", " ").title()
-    return None
-
-
-def extract_theme(filename_lower: str) -> str:
-    if "dark" in filename_lower:
-        return "dark"
-    if "light" in filename_lower:
-        return "light"
-    if "gradient" in filename_lower:
-        return "gradient"
-    return "default"
-
-
-def humanize(s: str) -> str:
-    return re.sub(r"[-_]+", " ", s).strip()
-
-
-def build_description(asset: dict) -> str:
-    parts = []
-    if asset.get("product"):
-        parts.append(f"{asset['product']} product")
-    if asset.get("vertical"):
-        parts.append(f"{asset['vertical']} industry")
-    parts.append(f"{asset['type'].replace('_', ' ')}")
-    if asset.get("dimensions"):
-        parts.append(f"{asset['dimensions']} {asset.get('format', '')} format")
-    if asset.get("theme") and asset["theme"] != "default":
-        parts.append(f"{asset['theme']} theme")
-    usable = asset.get("usable_for", [])
-    if usable:
-        parts.append(f"suitable for {', '.join(usable[:3])}")
-    subject = asset.get("subject", "")
-    if subject:
-        parts.append(f"depicting {subject}")
-    return ", ".join(parts).capitalize()
-
-
-def build_tags(asset: dict) -> list[str]:
-    tags = set()
-    tags.add(asset["type"])
-    if asset.get("category"):
-        tags.add(asset["category"])
-    if asset.get("subcategory"):
-        tags.add(asset["subcategory"])
-    if asset.get("vertical"):
-        tags.add(asset["vertical"])
-    if asset.get("product"):
-        tags.add(asset["product"].lower())
-    if asset.get("format"):
-        tags.add(asset["format"])
-    if asset.get("theme") and asset["theme"] != "default":
-        tags.add(asset["theme"])
-    return sorted(tags)
-
-
-def catalog_asset(rel_path: Path, full_path: Path) -> dict:
-    path_lower = str(rel_path).lower()
-    fname_lower = rel_path.name.lower()
-    stem = rel_path.stem.lower()
-    parts = rel_path.parts
-
-    category = parts[0].lower().replace("-", "_").replace(" ", "_") if parts else "uncategorized"
-    subcategory = parts[1].lower().replace("-", "_").replace(" ", "_") if len(parts) > 2 else ""
-
-    asset_type = extract_type(rel_path)
-    dims, fmt = extract_dimensions(rel_path.name)
-    vertical = extract_vertical(path_lower)
-    product = extract_product(path_lower)
-    theme = extract_theme(fname_lower)
-    archived = is_archived(rel_path)
-    compressed = in_compressed(rel_path)
-    subject = humanize(re.sub(r"\d{3,4}x\d{3,4}", "", stem).strip("_- "))
-
+def should_exclude(fp: Path) -> str | None:
+    parts_lower = [p.lower() for p in fp.parts]
+    for d in EXCLUDE_DIR_EXACT:
+        if d in parts_lower:
+            return f"dir:{d}"
+    rel_lower = str(fp).lower()
+    for s in EXCLUDE_PATH_SUBSTR:
+        if s in rel_lower:
+            return f"path:{s}"
+    if fp.suffix.lower() in EXCLUDE_EXTS:
+        return f"ext:{fp.suffix}"
+    if fp.name.lower().startswith("cursor"):
+        return "cursor-artifact"
     try:
-        size = full_path.stat().st_size
+        if fp.stat().st_size < MIN_FILE_SIZE:
+            return "under-1kb"
     except OSError:
-        size = 0
-
-    asset = {
-        "path": str(rel_path),
-        "category": humanize(category),
-        "subcategory": humanize(subcategory) if subcategory else "",
-        "type": asset_type,
-        "subject": subject,
-        "dimensions": dims,
-        "format": fmt,
-        "theme": theme,
-        "vertical": vertical,
-        "product": product,
-        "archived": archived,
-        "compressed": compressed,
-        "size_bytes": size,
-    }
-    asset["usable_for"] = USABLE_MAP.get(asset_type, ["general"])
-    asset["tags"] = build_tags(asset)
-    asset["description"] = build_description(asset)
-    return asset
+        return "stat-error"
+    return None
 
 
-def generate_embeddings(assets: list[dict]) -> list[dict]:
-    telnyx_key = Path(os.path.expanduser("~/.secrets/telnyx")).read_text().strip()
-    import requests
+def get_dimensions(fp: Path):
+    if fp.suffix.lower() not in IMAGE_EXTS - {".svg"}:
+        return None, None
+    try:
+        with Image.open(fp) as img:
+            w, h = img.width, img.height
+            orient = "landscape" if w > h else ("square" if w == h else "vertical")
+            return f"{w}x{h}", orient
+    except Exception:
+        return None, None
 
-    descriptions = [a["description"] for a in assets]
-    paths = [a["path"] for a in assets]
-    entries = []
-    total = len(descriptions)
 
-    for i in range(0, total, BATCH_SIZE):
-        batch = descriptions[i : i + BATCH_SIZE]
-        batch_paths = paths[i : i + BATCH_SIZE]
-        log.info("embedding batch %d-%d / %d", i + 1, min(i + BATCH_SIZE, total), total)
+def extract_product(path_lower: str):
+    for key, name in PRODUCT_NAMES.items():
+        if key.replace(" ", "-") in path_lower or key.replace(" ", "_") in path_lower or key in path_lower:
+            return name
+    return None
 
-        for attempt in range(3):
-            try:
-                resp = requests.post(
-                    "https://api.telnyx.com/v2/ai/openai/embeddings",
-                    headers={"Authorization": f"Bearer {telnyx_key}"},
-                    json={"model": "thenlper/gte-large", "input": batch},
-                    timeout=60,
-                )
-                resp.raise_for_status()
-                data = resp.json()["data"]
-                for j, d in enumerate(data):
-                    entries.append({"path": batch_paths[j], "embedding": d["embedding"]})
-                break
-            except Exception as e:
-                log.warning("embedding attempt %d failed: %s", attempt + 1, e)
-                if attempt == 2:
-                    log.error("giving up on batch %d-%d", i + 1, i + len(batch))
-                else:
-                    time.sleep(2 ** attempt)
 
-    return entries
+def extract_industry(path_lower: str):
+    for kw, ind in INDUSTRY_KW.items():
+        if kw in path_lower:
+            return ind
+    return None
+
+
+def parse_aspect(filename: str):
+    orient = None
+    for pat, o in ASPECT_PATTERNS:
+        if pat.search(filename):
+            orient = o; break
+    return orient, bool(RETINA_RE.search(filename))
+
+
+def build_catalog():
+    catalog, excluded = [], []
+    for fp in sorted(LIBRARY.rglob("*")):
+        if not fp.is_file() or fp.suffix.lower() not in ASSET_EXTS:
+            continue
+        rel = str(fp.relative_to(LIBRARY))
+        reason = should_exclude(fp)
+        if reason:
+            excluded.append({"path": rel, "reason": reason}); continue
+        pl = rel.lower().replace("-", " ").replace("_", " ")
+        product, industry = extract_product(pl), extract_industry(pl)
+        archived = any(p in rel.lower() for p in ["zold/", "zarchive/", "archive/"])
+        dims, orient = get_dimensions(fp)
+        fn_orient, retina = parse_aspect(fp.name)
+        if not orient and fn_orient:
+            orient = fn_orient
+        if not dims:
+            m = DIMENSION_RE.search(fp.stem)
+            if m:
+                dims = f"{m.group(1)}x{m.group(2)}"
+        cat = rel.split("/")[0] if "/" in rel else "uncategorized"
+        mtype = "image" if fp.suffix.lower() in IMAGE_EXTS else "video"
+        desc = f"{cat} {product or ''} {industry or ''} {fp.stem}".strip()
+        for old, new in PRODUCT_TEXT_FIX.items():
+            desc = desc.replace(old, new)
+        entry = {"path": rel, "category": cat, "media_type": mtype, "format": fp.suffix.lstrip("."),
+                 "product": product, "industry": industry, "dimensions": dims,
+                 "orientation": orient, "retina": retina or None, "archived": archived or None,
+                 "description": desc}
+        catalog.append({k: v for k, v in entry.items() if v is not None})
+    return catalog, excluded
+
+
+def generate_embeddings(catalog, api_key):
+    texts = [e.get("description", e["path"]) for e in catalog]
+    entries, total = [], len(texts)
+    log.info("Generating embeddings for %d assets...", total)
+    for i in range(0, total, 20):
+        batch = texts[i:i + 20]
+        body = json.dumps({"model": EMBED_MODEL, "input": batch}).encode()
+        req = Request(EMBED_URL, data=body,
+                      headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
+        with urlopen(req) as resp:
+            data = json.loads(resp.read())
+        for item, asset in zip(data["data"], catalog[i:i + 20]):
+            entries.append({"path": asset["path"], "embedding": item["embedding"]})
+        done = min(i + 20, total)
+        if done % 200 == 0 or done == total:
+            log.info("  embedded %d/%d", done, total)
+    result = {"model": EMBED_MODEL, "dimensions": 1024,
+              "generated": datetime.now(timezone.utc).isoformat(),
+              "total_entries": len(entries), "entries": entries}
+    EMBED_PATH.write_text(json.dumps(result))
+    log.info("Wrote embeddings: %s (%d entries)", EMBED_PATH, len(entries))
 
 
 def main():
-    log.info("scanning %s", LIBRARY)
-    assets = []
-    skipped_video = 0
-    skipped_other = 0
-
-    for f in sorted(LIBRARY.rglob("*")):
-        if not f.is_file():
-            continue
-        ext = f.suffix.lower()
-        if ext in {".mp4", ".webm", ".mov", ".avi"}:
-            skipped_video += 1
-            continue
-        if ext not in IMAGE_EXTS:
-            skipped_other += 1
-            continue
-        rel = f.relative_to(LIBRARY)
-        # Skip source/editable files deep in folder trees
-        if "source file" in str(rel).lower() or "editable" in str(rel).lower():
-            skipped_other += 1
-            continue
-        asset = catalog_asset(rel, f)
-        assets.append(asset)
-
-    log.info("cataloged %d images (skipped %d video, %d other)", len(assets), skipped_video, skipped_other)
-
-    catalog = {
-        "version": 1,
-        "generated": datetime.now(timezone.utc).isoformat(),
-        "total_assets": len(assets),
-        "active_assets": sum(1 for a in assets if not a["archived"]),
-        "archived_assets": sum(1 for a in assets if a["archived"]),
-        "assets": assets,
-    }
-
-    catalog_path = LIBRARY / "catalog.json"
-    catalog_path.write_text(json.dumps(catalog, indent=2))
-    log.info("wrote %s (%d assets)", catalog_path, len(assets))
-
-    # Generate embeddings for non-archived assets
-    active = [a for a in assets if not a["archived"]]
-    log.info("generating embeddings for %d active assets", len(active))
-    entries = generate_embeddings(active)
-
-    embeddings = {
-        "model": "thenlper/gte-large",
-        "dimensions": 1024,
-        "generated": datetime.now(timezone.utc).isoformat(),
-        "total_entries": len(entries),
-        "entries": entries,
-    }
-
-    emb_path = LIBRARY / "embeddings.json"
-    emb_path.write_text(json.dumps(embeddings))
-    log.info("wrote %s (%d entries)", emb_path, len(entries))
-
-    print(json.dumps({"catalog": str(catalog_path), "embeddings": str(emb_path),
-                       "total_assets": len(assets), "active": len(active),
-                       "embedded": len(entries)}))
+    log.info("Indexing library at %s", LIBRARY)
+    catalog, excluded = build_catalog()
+    output = {"generated": datetime.now(timezone.utc).isoformat(), "total": len(catalog),
+              "excluded": len(excluded), "entries": catalog, "excluded_entries": excluded}
+    CATALOG_PATH.write_text(json.dumps(output, indent=2))
+    log.info("Wrote catalog: %s", CATALOG_PATH)
+    with_dims = sum(1 for e in catalog if "dimensions" in e)
+    archived = sum(1 for e in catalog if e.get("archived"))
+    products = {}
+    for e in catalog:
+        products[e.get("product", "untagged")] = products.get(e.get("product", "untagged"), 0) + 1
+    log.info("=== Summary ===")
+    log.info("  Total cataloged: %d", len(catalog))
+    log.info("  With dimensions:  %d / %d", with_dims, len(catalog))
+    log.info("  Archived:         %d", archived)
+    log.info("  Excluded:         %d", len(excluded))
+    log.info("  Products: %s", json.dumps(products, indent=4))
+    key_path = Path.home() / ".secrets" / "telnyx"
+    if key_path.exists():
+        generate_embeddings(catalog, key_path.read_text().strip())
+    else:
+        log.warning("No API key at %s — skipping embeddings", key_path)
+    log.info("Done.")
 
 
 if __name__ == "__main__":
