@@ -96,11 +96,16 @@ def search(query: str, limit: int = 5) -> list[dict]:
 
 
 def main():
-    inp = json.load(sys.stdin)
-    query = inp.get("query", "")
-    limit = inp.get("limit", 5)
+    # Support both CLI args and JSON stdin
+    if len(sys.argv) > 1:
+        query = sys.argv[1]
+        limit = int(sys.argv[2]) if len(sys.argv) > 2 else 5
+    else:
+        inp = json.load(sys.stdin)
+        query = inp.get("query", "")
+        limit = inp.get("limit", 5)
     if not query:
-        log.error("No query provided")
+        log.error("No query provided. Usage: search_assets.py 'query' [limit]")
         sys.exit(1)
     log.info("Searching for: %s (limit=%d)", query, limit)
     results = search(query, limit)
