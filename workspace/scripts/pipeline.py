@@ -185,13 +185,44 @@ def run_pipeline(cfg: dict) -> dict:
              output_type, provider, template_id, len(formats))
     manifest = {"brief": brief, "files": [], "started_at": datetime.now(timezone.utc).isoformat()}
 
-    # Step 1: Generate hero image
+    # Step 0: Search brand library for a matching asset before generating
     hero_local, hero_url = None, None
-    if prompt:
+    if output_type == "static":
+        try:
+            search_query = " ".join(filter(None, [
+                brief.get("persona", ""), brief.get("use_case", ""),
+                brief.get("headline", ""), brief.get("vertical", ""),
+                brief.get("product", ""), brief.get("theme", ""),
+            ]))
+            if search_query.strip():
+                search_result = run_script("search_library.py", {
+                    "query": search_query, "limit": 1, "persona": brief.get("persona"),
+                })
+                results = search_result.get("results", [])
+                if results and results[0].get("score", 0) > 0.8:
+                    match = results[0]
+                    hero_local = str(WORKSPACE / match["path"])
+                    manifest["hero_image"] = hero_local
+                    manifest["hero_source"] = "library"
+                    manifest["library_match"] = {
+                        "path": match["path"], "score": match["score"],
+                        "description": match.get("description", ""),
+                    }
+                    log.info("asset_source=library path=%s score=%s", match["path"], match["score"])
+                else:
+                    best = results[0]["score"] if results else 0
+                    log.info("library search best_score=%.3f < 0.8 threshold, will generate", best)
+        except Exception as e:
+            log.warning("library search failed (%s), falling back to generation", e)
+
+    # Step 1: Generate hero image (only if library didn't provide one)
+    if not hero_local and prompt:
         hero_out = str(WORKSPACE / output_dir / "hero.png")
         result = run_script("generate_image.py", {"prompt": prompt, "output": hero_out, "provider": provider})
         hero_local = result.get("path", hero_out)
         manifest["hero_image"] = hero_local
+        manifest["hero_source"] = "generated"
+        log.info("asset_source=generated engine=%s", provider)
 
         # Step 2: Upload to Telnyx Storage
         ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
