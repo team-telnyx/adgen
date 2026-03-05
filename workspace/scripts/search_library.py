@@ -79,7 +79,8 @@ def search(query: str, catalog: dict, emb_lookup: dict, feedback: dict,
     query_emb = get_query_embedding(query)
 
     # Build asset lookup
-    asset_map = {a["path"]: a for a in catalog["assets"]}
+    assets_key = "assets" if "assets" in catalog else "entries"
+    asset_map = {a["path"]: a for a in catalog[assets_key]}
 
     results = []
     for path, embedding in emb_lookup.items():
@@ -148,11 +149,11 @@ def main():
     emb_lookup = load_embeddings()
     feedback = load_feedback()
     log.info("loaded %d assets, %d embeddings, %d feedback entries",
-             catalog["total_assets"], len(emb_lookup), sum(len(v) for v in feedback.values()))
+             catalog.get("total_assets", catalog.get("total", 0)), len(emb_lookup), sum(len(v) for v in feedback.values()))
 
     results = search(query, catalog, emb_lookup, feedback, limit, type_filter, format_filter, persona)
 
-    print(json.dumps({"results": results, "query": query, "total_candidates": catalog.get("active_assets", 0)}, indent=2))
+    print(json.dumps({"results": results, "query": query, "total_candidates": catalog.get("active_assets", catalog.get("total", 0))}, indent=2))
 
 
 if __name__ == "__main__":
