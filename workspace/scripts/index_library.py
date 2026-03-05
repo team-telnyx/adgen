@@ -3,7 +3,11 @@
 
 Walks workspace/brand/library, extracts metadata, reads real image dimensions
 via Pillow, normalizes product names, filters artifacts, parses aspect ratios.
+
+Flags:
+    --check     Report vision description and embedding coverage without re-indexing.
 """
+import argparse
 import json, logging, os, re, sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -164,9 +168,93 @@ def generate_embeddings(catalog, api_key):
     log.info("Wrote embeddings: %s (%d entries)", EMBED_PATH, len(entries))
 
 
+def report_coverage(catalog_data: dict):
+    """Report vision description and embedding coverage."""
+    entries = catalog_data.get("entries", [])
+    total = len(entries)
+    with_vision = sum(1 for e in entries if e.get("vision_description"))
+    with_embedding = sum(1 for e in entries if e.get("embedding"))
+    images = sum(1 for e in entries if e.get("media_type") == "image")
+    videos = sum(1 for e in entries if e.get("media_type") == "video")
+    image_formats = {"png", "jpg", "jpeg", "webp", "gif"}
+    describable = sum(1 for e in entries if e.get("format", "").lower() in image_formats)
+
+    log.info("=== Vision & Embedding Coverage ===")
+    log.info("  Total assets:          %d", total)
+    log.info("  Images:                %d", images)
+    log.info("  Videos:                %d", videos)
+    log.info("  Describable (non-SVG): %d", describable)
+    log.info("  Vision descriptions:   %d / %d (%.1f%%)",
+             with_vision, describable, (with_vision / max(describable, 1)) * 100)
+    log.info("  Inline embeddings:     %d / %d (%.1f%%)",
+             with_embedding, total, (with_embedding / max(total, 1)) * 100)
+
+    # Check legacy embeddings.json too
+    if EMBED_PATH.exists():
+        try:
+            emb_data = json.loads(EMBED_PATH.read_text())
+            file_emb = len(emb_data.get("entries", []))
+            log.info("  Legacy embeddings.json: %d entries", file_emb)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Per-category breakdown
+    cats = {}
+    for e in entries:
+        cat = e.get("category", "uncategorized")
+        if cat not in cats:
+            cats[cat] = {"total": 0, "vision": 0, "embedding": 0}
+        cats[cat]["total"] += 1
+        if e.get("vision_description"):
+            cats[cat]["vision"] += 1
+        if e.get("embedding"):
+            cats[cat]["embedding"] += 1
+
+    log.info("  --- Per-category ---")
+    for cat in sorted(cats.keys()):
+        c = cats[cat]
+        log.info("    %-40s total=%-4d vision=%-4d embed=%-4d", cat, c["total"], c["vision"], c["embedding"])
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Index the brand asset library")
+    parser.add_argument("--check", action="store_true",
+                        help="Report coverage without re-indexing")
+    args = parser.parse_args()
+
+    if args.check:
+        if not CATALOG_PATH.exists():
+            log.error("No catalog.json found at %s — run without --check first", CATALOG_PATH)
+            sys.exit(1)
+        catalog_data = json.loads(CATALOG_PATH.read_text())
+        report_coverage(catalog_data)
+        return
+
     log.info("Indexing library at %s", LIBRARY)
     catalog, excluded = build_catalog()
+
+    # Preserve vision_description and embedding from existing catalog
+    if CATALOG_PATH.exists():
+        try:
+            old_data = json.loads(CATALOG_PATH.read_text())
+            old_entries = {e["path"]: e for e in old_data.get("entries", [])}
+            preserved_vision = 0
+            preserved_embed = 0
+            for entry in catalog:
+                old = old_entries.get(entry["path"])
+                if old:
+                    if old.get("vision_description"):
+                        entry["vision_description"] = old["vision_description"]
+                        preserved_vision += 1
+                    if old.get("embedding"):
+                        entry["embedding"] = old["embedding"]
+                        preserved_embed += 1
+            if preserved_vision or preserved_embed:
+                log.info("Preserved %d vision descriptions and %d embeddings from previous catalog",
+                         preserved_vision, preserved_embed)
+        except (json.JSONDecodeError, OSError):
+            pass
+
     output = {"generated": datetime.now(timezone.utc).isoformat(), "total": len(catalog),
               "excluded": len(excluded), "entries": catalog, "excluded_entries": excluded}
     CATALOG_PATH.write_text(json.dumps(output, indent=2))
@@ -182,6 +270,10 @@ def main():
     log.info("  Archived:         %d", archived)
     log.info("  Excluded:         %d", len(excluded))
     log.info("  Products: %s", json.dumps(products, indent=4))
+
+    # Report vision/embedding coverage
+    report_coverage(output)
+
     key_path = Path.home() / ".secrets" / "telnyx"
     if key_path.exists():
         generate_embeddings(catalog, key_path.read_text().strip())
