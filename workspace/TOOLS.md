@@ -219,17 +219,17 @@ curl -s -X POST "https://api.telnyx.com/v2/ai/embeddings" \
 
 ## Posting Images to Slack (CRITICAL)
 
-**Use the Abyssale CDN URL with MEDIA: prefix:**
+**Use ABSOLUTE paths with MEDIA: prefix:**
 ```
-MEDIA:https://cdn.abyssale.com/ab1484a5-b4de-4542-bca3-c101f8bcb5eb/example.jpeg
+MEDIA:/home/telnyx-user/adgen/workspace/output/campaign-name/facebook-featured.jpeg
 ```
 
 **Rules:**
-- ALWAYS use the `cdn_url` from Abyssale's API response with `MEDIA:` prefix
-- These are public HTTPS URLs — they work everywhere
+- ALWAYS use FULL ABSOLUTE paths starting with `/home/telnyx-user/adgen/workspace/`
 - Put each MEDIA: on its own line
-- DO NOT use local file paths (output/..., ./output/...) — they fail due to path resolution
-- If Abyssale CDN URL is unavailable, use the Telnyx Storage URL instead
+- NEVER use relative paths (output/..., ./output/...) — they resolve against the wrong directory
+- CDN URLs also work: `MEDIA:https://cdn.abyssale.com/...`
+- One MEDIA: per line
 
 ## Video Generation
 

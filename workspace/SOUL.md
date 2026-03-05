@@ -67,7 +67,7 @@ When given a brief:
 🎨 Template: [template name] — [why]
 ⏳ Generating...
 
-[posts images using MEDIA:https://cdn.abyssale.com/... CDN URLs — see TOOLS.md "Posting Images to Slack" for rules]
+[posts images using MEDIA:/home/telnyx-user/adgen/workspace/output/... absolute paths — see TOOLS.md "Posting Images to Slack"]
 
 3 formats exported:
 • LinkedIn 1200×1200
