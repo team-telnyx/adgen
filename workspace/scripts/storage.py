@@ -54,17 +54,33 @@ def get_client():
     )
 
 
-def upload(client, bucket: str, local_path: str, remote_key: str) -> dict:
+CONTENT_TYPES = {
+    ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+    ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+    ".json": "application/json", ".pdf": "application/pdf",
+}
+
+
+def upload(client, bucket: str, local_path: str, remote_key: str,
+           acl: str = "", content_type: str = "") -> dict:
     """Upload a local file to a bucket."""
     path = Path(local_path)
     if not path.exists():
         log.error("File not found: %s", path)
         return {"ok": False, "error": f"File not found: {path}"}
 
+    extra = {}
+    if acl:
+        extra["ACL"] = acl
+    # Auto-detect content type from extension if not provided
+    ct = content_type or CONTENT_TYPES.get(path.suffix.lower(), "")
+    if ct:
+        extra["ContentType"] = ct
+
     log.info("Uploading %s → s3://%s/%s", path, bucket, remote_key)
-    client.upload_file(str(path), bucket, remote_key)
+    client.upload_file(str(path), bucket, remote_key, ExtraArgs=extra or None)
     size = path.stat().st_size
-    log.info("Done (%d bytes)", size)
+    log.info("Done (%d bytes, acl=%s, ct=%s)", size, acl or "default", ct or "auto")
     return {"ok": True, "bucket": bucket, "key": remote_key, "bytes": size}
 
 
@@ -116,7 +132,8 @@ def main():
     client = get_client()
 
     if action == "upload":
-        result = upload(client, params["bucket"], params["local_path"], params["remote_key"])
+        result = upload(client, params["bucket"], params["local_path"], params["remote_key"],
+                        acl=params.get("acl", ""), content_type=params.get("content_type", ""))
     elif action == "download":
         result = download(client, params["bucket"], params["remote_key"], params["local_path"])
     elif action == "list":

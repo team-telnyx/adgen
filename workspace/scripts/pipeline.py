@@ -1,209 +1,219 @@
 #!/usr/bin/env python3
-"""AdGen Pipeline — Brief-to-Assets orchestrator.
+"""AdGen Pipeline — Brief → AI Hero → Telnyx Storage → Abyssale → Download.
+Falls back to Pillow render.py if Abyssale fails. JSON stdin → JSON stdout."""
 
-Reads a campaign brief from stdin, orchestrates render, metadata, export,
-and optional variant generation. Prints a JSON manifest to stdout.
-"""
-
-import json
-import logging
-import os
-import subprocess
-import sys
-import time
+import json, logging, subprocess, sys, time
 from datetime import datetime, timezone
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
-logging.basicConfig(
-    format="[%(asctime)s] %(levelname)s %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%SZ",
-    level=logging.INFO,
-    stream=sys.stderr,
-)
+logging.basicConfig(format="[%(asctime)s] %(levelname)s %(message)s",
+                    datefmt="%Y-%m-%dT%H:%M:%SZ", level=logging.INFO, stream=sys.stderr)
 log = logging.getLogger("pipeline")
 logging.Formatter.converter = time.gmtime
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
 SCRIPTS_DIR = Path(__file__).resolve().parent
 WORKSPACE = SCRIPTS_DIR.parent
-BRAND_PALETTE = ["#00C26E", "#D4E510", "#FF6B9D"]
-ALL_TEMPLATES = [
-    "dark-hero-left", "light-minimal", "split-panel", "full-bleed-dark",
-    "stats-hero", "gradient-accent", "testimonial", "product-screenshot",
-]
+ABYSSALE_BASE = "https://api.abyssale.com"
+STORAGE_BUCKET = "adgen-brand"
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+
+def read_secret(name: str) -> str:
+    p = Path.home() / ".secrets" / name
+    if not p.exists():
+        raise FileNotFoundError(f"Secret not found: {p}")
+    return p.read_text().strip()
+
 
 def run_script(name: str, payload: dict) -> dict:
-    """Run a sibling script with JSON on stdin, return parsed stdout."""
     script = SCRIPTS_DIR / name
     log.info("calling %s", name)
-    proc = subprocess.run(
-        [sys.executable, str(script)],
-        input=json.dumps(payload),
-        capture_output=True,
-        text=True,
-        timeout=300,
-    )
+    proc = subprocess.run([sys.executable, str(script)], input=json.dumps(payload),
+                          capture_output=True, text=True, timeout=300)
     if proc.stderr:
         for line in proc.stderr.strip().splitlines():
             log.info("  [%s] %s", name, line)
     if proc.returncode != 0:
         raise RuntimeError(f"{name} exited {proc.returncode}: {proc.stderr[-500:]}")
-    if proc.stdout.strip():
-        return json.loads(proc.stdout)
-    return {}
+    return json.loads(proc.stdout) if proc.stdout.strip() else {}
 
 
-def pick_variant_params(variant_idx: int, base_template: str | None, base_accent: str | None):
-    """Rotate accent colors and optionally templates for variant N."""
-    accent = BRAND_PALETTE[variant_idx % len(BRAND_PALETTE)]
-    if base_accent and variant_idx == 0:
-        accent = base_accent
-    template = base_template
-    if not template:
-        template = ALL_TEMPLATES[variant_idx % len(ALL_TEMPLATES)]
-    return template, accent
+def upload_to_storage(local_path: str, remote_key: str) -> str:
+    log.info("uploading to storage key=%s", remote_key)
+    result = run_script("storage.py", {"action": "upload", "bucket": STORAGE_BUCKET,
+                                        "local_path": local_path, "remote_key": remote_key,
+                                        "acl": "public-read"})
+    if not result.get("ok"):
+        raise RuntimeError(f"Storage upload failed: {result}")
+    url = f"https://{STORAGE_BUCKET}.us-central-1.telnyxcloudstorage.com/{remote_key}"
+    log.info("uploaded url=%s", url)
+    return url
 
 
-def build_render_payload(brief: dict, template: str, accent: str, fmt: str,
-                         hero_image: str, bg: str, output: str) -> dict:
-    """Build the JSON payload for render.py."""
-    return {
-        "template": template,
-        "format": fmt,
-        "background": bg,
-        "headline": brief["headline"],
-        "subhead": brief.get("subhead", ""),
-        "cta": brief.get("cta", ""),
-        "accent_color": accent,
-        "hero_image": hero_image,
-        "output": output,
+def fetch_template(template_id: str, api_key: str) -> dict:
+    import requests
+    resp = requests.get(f"{ABYSSALE_BASE}/templates/{template_id}",
+                        headers={"x-api-key": api_key}, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def discover_elements(template_info: dict) -> dict:
+    elems = {"text": [], "image": [], "logo": [], "container": []}
+    for el in template_info.get("elements", []):
+        t = el.get("type", "unknown")
+        if t in elems:
+            elems[t].append(el)
+    return elems
+
+
+def map_brief_to_elements(brief: dict, discovered: dict, hero_url: str | None) -> dict:
+    mapped = {}
+    patterns = {
+        "headline": "headline", "title": "headline", "proper_name": "headline",
+        "heading": "headline", "subhead": "subhead", "subtitle": "subhead",
+        "lead": "subhead", "description": "subhead", "cta": "cta", "button": "cta",
     }
+    for el in discovered.get("text", []):
+        name, name_lc = el["name"], el["name"].lower().replace("-", "_")
+        for pat, field in patterns.items():
+            if pat in name_lc and brief.get(field):
+                mapped[name] = {"payload": brief[field]}
+                break
+        else:
+            for attr in el.get("attributes", []):
+                if attr.get("id") == "payload":
+                    vals = list(attr.get("values", {}).values())
+                    if vals and isinstance(vals[0], str):
+                        if len(vals[0]) < 30 and brief.get("headline"):
+                            mapped[name] = {"payload": brief["headline"]}
+                        elif brief.get("subhead"):
+                            mapped[name] = {"payload": brief["subhead"]}
+    if hero_url:
+        for el in discovered.get("image", []):
+            if "logo" not in el["name"].lower():
+                mapped[el["name"]] = {"image_url": hero_url}
+                break
+    log.info("mapped %d elements", len(mapped))
+    return mapped
 
 
-def build_metadata_payload(asset_path: str, brief: dict, template: str,
-                           accent: str, fmt: str, variant: int) -> dict:
-    """Build the JSON payload for asset_metadata.py."""
-    return {
-        "asset_path": asset_path,
-        "template": template,
-        "format": fmt,
-        "accent_color": accent,
-        "variant": variant,
-        "campaign": brief.get("campaign", ""),
-        "persona": brief.get("persona", ""),
-        "headline": brief["headline"],
-        "subhead": brief.get("subhead", ""),
-        "cta": brief.get("cta", ""),
-    }
+def generate_abyssale(template_id: str, fmt: str, elements: dict, api_key: str) -> dict:
+    import requests
+    log.info("abyssale generate template=%s format=%s", template_id, fmt)
+    t0 = time.monotonic()
+    resp = requests.post(f"{ABYSSALE_BASE}/banner-builder/{template_id}/generate",
+                         headers={"x-api-key": api_key, "Content-Type": "application/json"},
+                         json={"template_format_name": fmt, "elements": elements}, timeout=120)
+    resp.raise_for_status()
+    log.info("abyssale responded in %.1fs", time.monotonic() - t0)
+    return resp.json()
 
-# ---------------------------------------------------------------------------
-# Pipeline
-# ---------------------------------------------------------------------------
+
+def download_file(url: str, local_path: str) -> int:
+    import requests
+    resp = requests.get(url, timeout=60)
+    resp.raise_for_status()
+    out = Path(local_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(resp.content)
+    log.info("saved %d bytes → %s", len(resp.content), local_path)
+    return len(resp.content)
+
+
+def pillow_fallback(brief: dict, fmt: str, output: str, hero: str, bg: str) -> str:
+    log.warning("pillow fallback for format=%s", fmt)
+    run_script("render.py", {"template": "dark-hero-left", "format": fmt,
+                              "background": bg, "headline": brief["headline"],
+                              "subhead": brief.get("subhead", ""), "cta": brief.get("cta", ""),
+                              "accent_color": "#D4E510", "hero_image": hero, "output": output})
+    return str(WORKSPACE / output) if not Path(output).is_absolute() else output
+
+
+def write_metadata(asset_path: str, brief: dict, extra: dict):
+    meta = {"asset_path": asset_path, "campaign": brief.get("campaign", ""),
+            "persona": brief.get("persona", ""), "headline": brief["headline"],
+            "subhead": brief.get("subhead", ""), "cta": brief.get("cta", "")}
+    meta.update(extra)
+    run_script("asset_metadata.py", meta)
+
 
 def run_pipeline(cfg: dict) -> dict:
     t0 = time.time()
     brief = cfg["brief"]
-    base_template = cfg.get("template")
-    base_accent = cfg.get("accent_color")
-    hero_image = cfg.get("hero_image", "")
-    generate_hero = cfg.get("generate_hero", False)
-    hero_prompt = cfg.get("hero_prompt", "")
-    formats = cfg.get("formats", ["linkedin_1200x1200"])
-    num_variants = max(1, cfg.get("variants", 1))
+    provider = cfg.get("image_provider", "dalle")
+    prompt = cfg.get("image_prompt", "")
+    template_id = cfg.get("abyssale_template", "")
+    formats = cfg.get("formats", ["facebook-featured"])
     output_dir = cfg.get("output_dir", "output/campaign")
     bg = cfg.get("background", "#000000")
 
-    master_format = formats[0]
-    extra_formats = formats[1:] if len(formats) > 1 else []
+    log.info("pipeline start provider=%s template=%s formats=%d", provider, template_id, len(formats))
+    manifest = {"brief": brief, "files": [], "started_at": datetime.now(timezone.utc).isoformat()}
 
-    log.info("pipeline start variants=%d formats=%d output=%s", num_variants, len(formats), output_dir)
+    # Step 1: Generate hero image
+    hero_local, hero_url = None, None
+    if prompt:
+        hero_out = str(WORKSPACE / output_dir / "hero.png")
+        result = run_script("generate_image.py", {"prompt": prompt, "output": hero_out, "provider": provider})
+        hero_local = result.get("path", hero_out)
+        manifest["hero_image"] = hero_local
 
-    # Step 1: Generate hero if requested
-    if generate_hero and hero_prompt:
-        log.info("generating hero image via AI")
-        gen_out = str(WORKSPACE / output_dir / "generated_hero.png")
-        result = run_script("generate_image.py", {
-            "prompt": hero_prompt,
-            "output": gen_out,
-            "provider": cfg.get("hero_provider", "dalle"),
-        })
-        hero_image = result.get("path", gen_out)
-        log.info("hero generated path=%s", hero_image)
+        # Step 2: Upload to Telnyx Storage
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        try:
+            hero_url = upload_to_storage(hero_local, f"heroes/{brief.get('campaign','misc')}/{ts}-hero.png")
+            manifest["hero_url"] = hero_url
+        except Exception as e:
+            log.warning("storage upload failed: %s", e)
 
-    manifest = {
-        "brief": brief,
-        "variants": [],
-        "total_files": 0,
-        "started_at": datetime.now(timezone.utc).isoformat(),
-    }
+    # Steps 3-7: Abyssale rendering
+    abyssale_ok = False
+    if template_id:
+        try:
+            api_key = read_secret("abyssale")
+            tinfo = fetch_template(template_id, api_key)
+            avail = [f["id"] for f in tinfo.get("formats", [])]
+            discovered = discover_elements(tinfo)
+            elem_map = map_brief_to_elements(brief, discovered, hero_url)
 
-    for vi in range(num_variants):
-        template, accent = pick_variant_params(vi, base_template, base_accent)
-        variant_label = f"v{vi + 1}"
-        variant_dir = output_dir if num_variants == 1 else f"{output_dir}/{variant_label}"
-        variant_files = []
+            for fmt in formats:
+                if fmt not in avail:
+                    log.warning("format %s not in template (available: %s)", fmt, avail)
+                    p = pillow_fallback(brief, "linkedin_1200x1200", f"{output_dir}/{fmt}.png", hero_local or "", bg)
+                    manifest["files"].append({"format": fmt, "path": p, "renderer": "pillow-fallback"})
+                    continue
+                res = generate_abyssale(template_id, fmt, elem_map, api_key)
+                cdn = res.get("file", {}).get("cdn_url") or res.get("file", {}).get("url", "")
+                if cdn:
+                    ext = "jpeg" if "jpeg" in cdn else "png"
+                    local = str(WORKSPACE / output_dir / f"{fmt}.{ext}")
+                    download_file(cdn, local)
+                    manifest["files"].append({"format": fmt, "path": local, "renderer": "abyssale",
+                                              "cdn_url": cdn, "abyssale_id": res.get("id")})
+                    abyssale_ok = True
+                    write_metadata(local, brief, {"template_id": template_id, "format": fmt,
+                                                   "renderer": "abyssale", "cdn_url": cdn, "hero_url": hero_url or ""})
+        except Exception as e:
+            log.error("abyssale failed: %s — using pillow", e)
 
-        log.info("variant %s template=%s accent=%s", variant_label, template, accent)
-
-        # Step 2: Render master format
-        master_out = f"{variant_dir}/{master_format}.png"
-        render_payload = build_render_payload(
-            brief, template, accent, master_format, hero_image, bg, master_out,
-        )
-        run_script("render.py", render_payload)
-        master_abs = str(WORKSPACE / master_out)
-        variant_files.append({"format": master_format, "path": master_abs})
-        log.info("master rendered path=%s", master_abs)
-
-        # Step 3: Metadata sidecar
-        meta_payload = build_metadata_payload(
-            master_abs, brief, template, accent, master_format, vi,
-        )
-        meta_result = run_script("asset_metadata.py", meta_payload)
-        variant_files.append({
-            "format": "metadata",
-            "path": meta_result.get("meta_path", ""),
-        })
-
-        # Step 4: Extra formats via Abyssale (if configured) or render fallback
-        for fmt in extra_formats:
-            fmt_out = f"{variant_dir}/{fmt}.png"
-            fmt_payload = build_render_payload(
-                brief, template, accent, fmt, hero_image, bg, fmt_out,
-            )
-            run_script("render.py", fmt_payload)
-            fmt_abs = str(WORKSPACE / fmt_out)
-            variant_files.append({"format": fmt, "path": fmt_abs})
-            log.info("format rendered fmt=%s path=%s", fmt, fmt_abs)
-
-            # Metadata for each format
-            fmt_meta = build_metadata_payload(
-                fmt_abs, brief, template, accent, fmt, vi,
-            )
-            run_script("asset_metadata.py", fmt_meta)
-
-        manifest["variants"].append({
-            "variant": variant_label,
-            "template": template,
-            "accent_color": accent,
-            "files": variant_files,
-        })
-        manifest["total_files"] += len(variant_files)
+    # Fallback
+    if not abyssale_ok:
+        fmt_map = {"facebook-featured": "linkedin_1200x1200", "docs-to-strapi": "linkedin_1200x1200"}
+        for fmt in formats:
+            pfmt = fmt_map.get(fmt, "linkedin_1200x1200")
+            try:
+                p = pillow_fallback(brief, pfmt, f"{output_dir}/{fmt}.png", hero_local or "", bg)
+                manifest["files"].append({"format": fmt, "path": p, "renderer": "pillow-fallback"})
+                write_metadata(p, brief, {"format": pfmt, "renderer": "pillow-fallback"})
+            except Exception as e:
+                log.error("pillow fallback failed for %s: %s", fmt, e)
 
     elapsed = time.time() - t0
-    manifest["completed_at"] = datetime.now(timezone.utc).isoformat()
-    manifest["elapsed_seconds"] = round(elapsed, 1)
-    log.info("pipeline complete variants=%d files=%d elapsed=%.1fs",
-             num_variants, manifest["total_files"], elapsed)
+    manifest.update({"completed_at": datetime.now(timezone.utc).isoformat(),
+                     "elapsed_seconds": round(elapsed, 1), "total_files": len(manifest["files"]),
+                     "renderer_used": "abyssale" if abyssale_ok else "pillow-fallback"})
+    log.info("pipeline complete files=%d renderer=%s elapsed=%.1fs",
+             manifest["total_files"], manifest["renderer_used"], elapsed)
     return manifest
 
 
@@ -213,11 +223,9 @@ def main():
     except json.JSONDecodeError as e:
         log.error("invalid JSON input: %s", e)
         sys.exit(1)
-
     if "brief" not in cfg or "headline" not in cfg.get("brief", {}):
         log.error("missing required field: brief.headline")
         sys.exit(1)
-
     try:
         manifest = run_pipeline(cfg)
         print(json.dumps(manifest, indent=2))
