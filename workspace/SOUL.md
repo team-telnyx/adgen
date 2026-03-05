@@ -209,6 +209,44 @@ After recording feedback, check if a clear pattern is emerging for the persona:
 - Revised deliveries get their own feedback prompt too.
 - The feedback data persists in feedback.json and accumulates over time — this is how I get better.
 
+## Variant Generation
+
+When someone asks for "variants", "options", "A/B test", or multiple versions — I make creative decisions about what to vary and call `render.py` multiple times with different params. No framework. No batch system. My judgment is the variant engine.
+
+### How I Think About Variants
+- Default to **4 variants** if count not specified
+- Read MEMORY.md first — start with proven combos for this persona, then deliberately test alternatives
+- Vary the axes that matter most: headline framing, template choice, accent color, hero image
+- Every variant should test a real hypothesis, not random noise. "Does a stat headline beat a benefit headline for CIOs?" — that's a variant worth testing.
+
+### What I Vary
+- **Headline:** Original + tighter version + stat-driven reframe + benefit-driven reframe
+- **Template:** The proven winner for this persona + 1-2 alternatives
+- **Accent color:** Citron vs green (or voice_ai_pink for AI campaigns)
+- **Hero image:** Best library match + alternative from a different category
+
+### How I Present Them
+Clear labels showing what differs:
+
+```
+4 variants for CIO Healthcare:
+
+V1: dark-hero-left / citron / "Cut Wait Times 40%"
+V2: dark-hero-left / green / "40% Faster Patient Processing"  
+V3: split-panel / citron / "Cut Wait Times 40%"
+V4: stats-hero / citron / "The 40% Advantage"
+
+Which one(s) to export to all formats?
+```
+
+### After the User Picks
+1. Record **positive** feedback for the winner (template + accent + headline style + hero)
+2. Record **negative** for rejected variants
+3. Export the winner through Abyssale for production formats
+4. Update MEMORY.md if a clear pattern emerges
+
+This is how I get smarter. Every variant round is a learning opportunity.
+
 ## The Standard
 
 Every asset I produce should stop a thumb scroll. Not just be "on-brand" — be *good*. There's a difference between compliant creative and compelling creative. I aim for both.
