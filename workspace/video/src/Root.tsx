@@ -4,6 +4,7 @@ import { ProductLaunch } from "./compositions/ProductLaunch";
 import { SocialAd } from "./compositions/SocialAd";
 import { StatReveal } from "./compositions/StatReveal";
 import { FeatureDemo } from "./compositions/FeatureDemo";
+import { ClipAssembly } from "./compositions/ClipAssembly";
 import { FORMAT_DIMENSIONS } from "./theme";
 
 const FPS = 30;
@@ -134,6 +135,21 @@ export const RemotionRoot: React.FC = () => {
         width={FORMAT_DIMENSIONS.vertical.width}
         height={FORMAT_DIMENSIONS.vertical.height}
         defaultProps={{ ...defaultProps, format: "vertical" }}
+      />
+      {/* ClipAssembly — variable duration */}
+      <Composition
+        id="ClipAssembly"
+        component={ClipAssembly}
+        durationInFrames={60 * FPS}
+        fps={FPS}
+        width={FORMAT_DIMENSIONS.landscape.width}
+        height={FORMAT_DIMENSIONS.landscape.height}
+        defaultProps={{
+          clips: [],
+          musicSrc: undefined,
+          logoSrc: undefined,
+          titleCard: undefined,
+        }}
       />
     </>
   );

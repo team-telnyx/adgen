@@ -1,142 +1,120 @@
 #!/usr/bin/env python3
-"""Editly video assembly wrapper. JSON stdin → JSON stdout.
-Assembles clips, adds logo overlay, music, and title cards via editly CLI."""
+"""Video editing via Remotion ClipAssembly — cut, trim, splice, assemble clips.
+Uses Remotion's Chromium renderer instead of editly's headless-gl.
+JSON stdin → MP4 output."""
 
 import json, logging, os, subprocess, sys, tempfile, time
-from datetime import datetime, timezone
-from pathlib import Path
 
-logging.basicConfig(format="[%(asctime)s] %(levelname)s %(message)s",
-                    datefmt="%Y-%m-%dT%H:%M:%SZ", level=logging.INFO, stream=sys.stderr)
+logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(levelname)s %(message)s", datefmt="%Y-%m-%dT%H:%M:%SZ")
 log = logging.getLogger("edit_video")
-logging.Formatter.converter = time.gmtime
 
-WORKSPACE = Path(__file__).resolve().parent.parent
+VIDEO_DIR = os.path.join(os.path.dirname(__file__), "..", "video")
+BRAND_DIR = os.path.join(os.path.dirname(__file__), "..", "brand")
 
-FORMAT_DIMS = {"landscape": (1920, 1080), "square": (1080, 1080), "vertical": (1080, 1920)}
-
-
-def resolve_path(p: str) -> str:
-    path = Path(p)
-    return str(path if path.is_absolute() else WORKSPACE / p)
-
-
-def build_editly_spec(cfg: dict) -> dict:
-    fmt = cfg.get("format", "landscape")
-    width, height = FORMAT_DIMS.get(fmt, FORMAT_DIMS["landscape"])
-    output = resolve_path(cfg.get("output", "output/assembled.mp4"))
-    logo = cfg.get("logo_overlay")
-
-    clips = []
-    for clip in cfg.get("clips", []):
-        layer: dict = {"type": "video", "path": resolve_path(clip["path"])}
-        if "cutFrom" in clip:
-            layer["cutFrom"] = clip["cutFrom"]
-        if "cutTo" in clip:
-            layer["cutTo"] = clip["cutTo"]
-
-        layers = [layer]
-
-        # Add logo overlay to every clip
-        if logo:
-            layers.append({
-                "type": "image-overlay",
-                "path": resolve_path(logo),
-                "position": "top-right",
-                "width": 0.12,
-                "height": None,
-            })
-
-        clips.append({"layers": layers})
-
-    spec: dict = {"width": width, "height": height, "fps": 30, "outPath": output,
-                   "clips": clips, "defaults": {"transition": {"name": "crossfade", "duration": 0.5}}}
-    music = cfg.get("music")
-    if music:
-        spec["audioFilePath"] = resolve_path(music)
-    return spec
-
-
-def assemble(cfg: dict) -> dict:
-    t0 = time.time()
-    spec = build_editly_spec(cfg)
-    output = spec["outPath"]
-
-    Path(output).parent.mkdir(parents=True, exist_ok=True)
-
-    # Write spec to temp file
-    spec_file = tempfile.NamedTemporaryFile(mode="w", suffix=".json5", delete=False)
-    json.dump(spec, spec_file)
-    spec_file.close()
-
-    log.info("editly spec written clips=%d output=%s", len(spec["clips"]), output)
-
-    try:
-        cmd = ["npx", "editly", "--json", spec_file.name]
-        log.info("cmd=%s", " ".join(cmd))
-
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-
-        if proc.stderr:
-            for line in proc.stderr.strip().splitlines()[-20:]:
-                log.info("  [editly] %s", line)
-
-        if proc.returncode != 0:
-            log.error("editly failed exit=%d", proc.returncode)
-            raise RuntimeError(f"Editly failed: {proc.stderr[-500:]}")
-
-        out_path = Path(output)
-        if not out_path.exists():
-            raise RuntimeError(f"Output not created: {output}")
-
-        file_size = out_path.stat().st_size
-        elapsed = time.time() - t0
-
-        # Write metadata sidecar
-        meta = {
-            "operation": cfg.get("operation", "assemble"),
-            "clips": len(cfg.get("clips", [])),
-            "format": cfg.get("format", "landscape"),
-            "output_path": output,
-            "file_size_bytes": file_size,
-            "assembled_at": datetime.now(timezone.utc).isoformat(),
-            "elapsed_seconds": round(elapsed, 1),
-            "has_music": bool(cfg.get("music")),
-            "has_logo": bool(cfg.get("logo_overlay")),
-        }
-        meta_path = out_path.with_suffix(".meta.json")
-        meta_path.write_text(json.dumps(meta, indent=2))
-
-        log.info("assembly complete size=%d elapsed=%.1fs", file_size, elapsed)
-        return {"ok": True, "path": output, "meta": str(meta_path),
-                "size_bytes": file_size, "elapsed": round(elapsed, 1)}
-
-    finally:
-        os.unlink(spec_file.name)
+FORMAT_DIMS = {
+    "landscape": (1920, 1080),
+    "square": (1080, 1080),
+    "vertical": (1080, 1920),
+}
 
 
 def main():
+    spec = json.load(sys.stdin)
+    output = spec.get("output", "output/assembled.mp4")
+    fmt = spec.get("format", "landscape")
+    width, height = FORMAT_DIMS.get(fmt, (1920, 1080))
+
+    abs_output = output if os.path.isabs(output) else os.path.join(os.path.dirname(__file__), "..", output)
+    os.makedirs(os.path.dirname(abs_output), exist_ok=True)
+
+    log.info("format=%s output=%s clips=%d", fmt, abs_output, len(spec.get("clips", [])))
+
+    # Build Remotion ClipAssembly props
+    clips = []
+    for c in spec.get("clips", []):
+        clip = {"src": os.path.abspath(c["path"]) if not c["path"].startswith("http") else c["path"]}
+        if "cutFrom" in c:
+            clip["startFrom"] = c["cutFrom"]
+        if "cutTo" in c:
+            clip["endAt"] = c["cutTo"]
+        if "duration" in c:
+            clip["durationInFrames"] = int(c["duration"] * 30)
+        clips.append(clip)
+
+    props = {"clips": clips}
+
+    if spec.get("logo_overlay"):
+        logo_path = spec["logo_overlay"]
+        if not logo_path.startswith("http"):
+            logo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", logo_path))
+        props["logoSrc"] = logo_path
+
+    if spec.get("music"):
+        music_path = spec["music"]
+        if not music_path.startswith("http"):
+            music_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", music_path))
+        props["musicSrc"] = music_path
+
+    if spec.get("title_card"):
+        props["titleCard"] = {
+            "text": spec["title_card"].get("text", ""),
+            "durationInFrames": int(spec["title_card"].get("duration", 3) * 30),
+        }
+
+    # Calculate total duration
+    total_frames = sum(c.get("durationInFrames", 300) for c in clips)
+    if props.get("titleCard"):
+        total_frames += props["titleCard"]["durationInFrames"]
+
+    # Write props to temp file
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(props, f)
+        props_file = f.name
+
+    t0 = time.time()
+
+    cmd = [
+        "npx", "remotion", "render", "src/index.ts", "ClipAssembly", abs_output,
+        f"--props={props_file}",
+        f"--width={width}", f"--height={height}",
+        f"--frames=0-{total_frames - 1}",
+    ]
+
+    log.info("cmd=%s", " ".join(cmd))
+
     try:
-        cfg = json.load(sys.stdin)
-    except json.JSONDecodeError as e:
-        log.error("invalid JSON input: %s", e)
-        sys.exit(1)
+        result = subprocess.run(cmd, cwd=VIDEO_DIR, capture_output=True, text=True, timeout=300)
+        os.unlink(props_file)
 
-    op = cfg.get("operation", "assemble")
-    if op != "assemble":
-        log.error("unsupported operation: %s", op)
-        sys.exit(1)
+        if result.returncode != 0:
+            log.error("render failed: %s", result.stderr[-500:] if result.stderr else "no stderr")
+            sys.exit(1)
 
-    if not cfg.get("clips"):
-        log.error("missing required field: clips")
-        sys.exit(1)
+        elapsed = round(time.time() - t0, 1)
+        size = os.path.getsize(abs_output)
 
-    try:
-        result = assemble(cfg)
-        print(json.dumps(result, indent=2))
-    except Exception as e:
-        log.error("edit failed: %s", e)
-        print(json.dumps({"ok": False, "error": str(e)}))
+        # Metadata sidecar
+        meta = {
+            "type": "edit",
+            "clips": len(clips),
+            "format": fmt,
+            "width": width,
+            "height": height,
+            "total_frames": total_frames,
+            "elapsed": elapsed,
+            "size_bytes": size,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        meta_path = abs_output + ".meta.json"
+        with open(meta_path, "w") as f:
+            json.dump(meta, f, indent=2)
+
+        log.info("render complete size=%d elapsed=%ss meta=%s", size, elapsed, meta_path)
+        json.dump({"ok": True, "path": abs_output, "meta": meta_path, "size_bytes": size, "elapsed": elapsed}, sys.stdout)
+
+    except subprocess.TimeoutExpired:
+        log.error("render timed out (300s)")
+        os.unlink(props_file)
         sys.exit(1)
 
 
