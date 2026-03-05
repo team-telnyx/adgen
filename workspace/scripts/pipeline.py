@@ -250,8 +250,14 @@ def run_pipeline(cfg: dict) -> dict:
                 "elapsed_seconds": round(elapsed, 1),
                 "total_files": len(manifest["files"]),
                 "renderer_used": "remotion" if output_type == "video" else "editly",
+                "feedback_requested": True,
+                "requester": cfg.get("requester", brief.get("requester", "")),
+                "persona": brief.get("persona", ""),
+                "template_id": template_id or "",
+                "headline": brief.get("headline", ""),
+                "asset_path": video_path,
             })
-            log.info("video pipeline complete path=%s elapsed=%.1fs", video_path, elapsed)
+            log.info("video pipeline complete path=%s elapsed=%.1fs feedback_requested=True", video_path, elapsed)
             return manifest
         except Exception as e:
             log.error("video pipeline failed: %s", e)
@@ -320,10 +326,21 @@ def run_pipeline(cfg: dict) -> dict:
                 log.error("pillow fallback failed for %s: %s", fmt, e)
 
     elapsed = time.time() - t0
-    manifest.update({"completed_at": datetime.now(timezone.utc).isoformat(),
-                     "elapsed_seconds": round(elapsed, 1), "total_files": len(manifest["files"]),
-                     "renderer_used": "abyssale" if abyssale_ok else "pillow-fallback"})
-    log.info("pipeline complete files=%d renderer=%s elapsed=%.1fs",
+    manifest.update({
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "elapsed_seconds": round(elapsed, 1),
+        "total_files": len(manifest["files"]),
+        "renderer_used": "abyssale" if abyssale_ok else "pillow-fallback",
+        "feedback_requested": True,
+        "requester": cfg.get("requester", brief.get("requester", "")),
+        "persona": brief.get("persona", ""),
+        "template_id": template_id or "",
+        "headline": brief.get("headline", ""),
+    })
+    # Add asset_path for easy feedback recording (first file)
+    if manifest["files"]:
+        manifest["asset_path"] = manifest["files"][0].get("path", "")
+    log.info("pipeline complete files=%d renderer=%s elapsed=%.1fs feedback_requested=True",
              manifest["total_files"], manifest["renderer_used"], elapsed)
     return manifest
 

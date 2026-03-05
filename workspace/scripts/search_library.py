@@ -31,12 +31,24 @@ def load_embeddings() -> dict:
 
 def load_feedback() -> dict:
     if not FEEDBACK_PATH.exists():
+        log.info("no feedback.json found — skipping feedback boosts")
         return {}
-    data = json.loads(FEEDBACK_PATH.read_text())
+    try:
+        data = json.loads(FEEDBACK_PATH.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        log.warning("failed to load feedback.json: %s — skipping boosts", e)
+        return {}
+    # Support both "entries" (current) and "records" (legacy) keys
+    entries = data.get("entries", data.get("records", []))
+    if not entries:
+        log.info("feedback.json is empty — no boosts to apply")
+        return {}
     # Build path→{persona→score} lookup
     scores = {}
-    for record in data.get("records", []):
-        path = record["asset_path"]
+    for record in entries:
+        path = record.get("asset_path", "")
+        if not path:
+            continue
         persona = record.get("persona", "")
         rating = record.get("rating", "neutral")
         if path not in scores:
@@ -47,6 +59,9 @@ def load_feedback() -> dict:
             scores[path][persona] += 1.0
         elif rating == "negative":
             scores[path][persona] -= 1.0
+        elif rating == "revision":
+            scores[path][persona] -= 0.5
+    log.info("loaded feedback for %d assets", len(scores))
     return scores
 
 
@@ -98,17 +113,26 @@ def search(query: str, catalog: dict, emb_lookup: dict, feedback: dict,
 
         score = cosine_sim(query_emb, embedding)
 
-        # Apply feedback boosts
-        if persona and path in feedback:
-            persona_score = feedback[path].get(persona, 0.0)
+        # Apply feedback boosts BEFORE ranking
+        base_score = score
+        if path in feedback:
+            # Apply persona-specific boost if persona given, else aggregate
+            if persona:
+                persona_score = feedback[path].get(persona, 0.0)
+            else:
+                persona_score = sum(feedback[path].values())
             if persona_score > 0:
                 score += 0.1
             elif persona_score < 0:
                 score -= 0.15
+            if base_score != score:
+                log.info("feedback boost: %s base=%.4f → boosted=%.4f (persona=%s, feedback_score=%.1f)",
+                         path, base_score, score, persona or "all", persona_score)
 
         results.append({
             "path": f"brand/library/{path}",
             "score": round(score, 4),
+            "base_score": round(base_score, 4),
             "description": asset.get("description", ""),
             "category": asset.get("category", ""),
             "type": asset.get("type", ""),
@@ -121,7 +145,18 @@ def search(query: str, catalog: dict, emb_lookup: dict, feedback: dict,
             "usable_for": asset.get("usable_for", []),
         })
 
+    # Sort by score — feedback boosts may change ranking order
     results.sort(key=lambda r: r["score"], reverse=True)
+
+    # Log ranking changes due to feedback boosts
+    if feedback and persona:
+        unboosted = sorted(results, key=lambda r: r.get("base_score", r["score"]), reverse=True)
+        for i, r in enumerate(results[:limit]):
+            unboosted_idx = next((j for j, u in enumerate(unboosted) if u["path"] == r["path"]), i)
+            if unboosted_idx != i:
+                log.info("ranking change: %s moved from #%d → #%d due to feedback boost",
+                         r["path"], unboosted_idx + 1, i + 1)
+
     elapsed = time.monotonic() - t0
     log.info("search completed in %.3fs — %d candidates, returning top %d", elapsed, len(results), limit)
     return results[:limit]
