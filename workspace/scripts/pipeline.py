@@ -137,9 +137,43 @@ def write_metadata(asset_path: str, brief: dict, extra: dict):
     run_script("asset_metadata.py", meta)
 
 
+def run_video_pipeline(cfg: dict, hero_url: str | None, hero_local: str | None) -> dict:
+    """Route to render_video.py for Remotion output or edit_video.py for Editly assembly."""
+    brief = cfg["brief"]
+    output_type = cfg.get("output_type", "video")
+    output_dir = cfg.get("output_dir", "output/campaign")
+    fmt = cfg.get("video_format", "landscape")
+
+    if output_type == "edit":
+        edit_cfg = cfg.get("edit_config", {})
+        edit_cfg.setdefault("format", fmt)
+        edit_cfg.setdefault("output", f"{output_dir}/assembled.mp4")
+        return run_script("edit_video.py", edit_cfg)
+
+    # output_type == "video" → Remotion render
+    composition = cfg.get("composition", "ProductLaunch")
+    duration = cfg.get("video_duration", 15)
+    accent = cfg.get("accent_color", brief.get("accent_color", "#00C26E"))
+    render_cfg = {
+        "composition": composition,
+        "props": {
+            "headline": brief["headline"],
+            "subhead": brief.get("subhead", ""),
+            "cta": brief.get("cta", "Learn More"),
+            "heroImage": hero_url or "",
+            "accentColor": accent,
+        },
+        "format": fmt,
+        "duration": duration,
+        "output": f"{output_dir}/{composition.lower()}.mp4",
+    }
+    return run_script("render_video.py", render_cfg)
+
+
 def run_pipeline(cfg: dict) -> dict:
     t0 = time.time()
     brief = cfg["brief"]
+    output_type = cfg.get("output_type", "static")
     provider = cfg.get("image_provider", "dalle")
     prompt = cfg.get("image_prompt", "")
     template_id = cfg.get("abyssale_template", "")
@@ -147,7 +181,8 @@ def run_pipeline(cfg: dict) -> dict:
     output_dir = cfg.get("output_dir", "output/campaign")
     bg = cfg.get("background", "#000000")
 
-    log.info("pipeline start provider=%s template=%s formats=%d", provider, template_id, len(formats))
+    log.info("pipeline start output_type=%s provider=%s template=%s formats=%d",
+             output_type, provider, template_id, len(formats))
     manifest = {"brief": brief, "files": [], "started_at": datetime.now(timezone.utc).isoformat()}
 
     # Step 1: Generate hero image
@@ -166,7 +201,32 @@ def run_pipeline(cfg: dict) -> dict:
         except Exception as e:
             log.warning("storage upload failed: %s", e)
 
-    # Steps 3-7: Abyssale rendering
+    # Video/Edit routing (non-static output types)
+    if output_type in ("video", "edit"):
+        log.info("routing to %s pipeline", output_type)
+        try:
+            video_result = run_video_pipeline(cfg, hero_url, hero_local)
+            video_path = video_result.get("path", "")
+            manifest["files"].append({
+                "format": cfg.get("video_format", "landscape"),
+                "path": video_path,
+                "renderer": "remotion" if output_type == "video" else "editly",
+                "meta": video_result.get("meta", ""),
+            })
+            elapsed = time.time() - t0
+            manifest.update({
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "elapsed_seconds": round(elapsed, 1),
+                "total_files": len(manifest["files"]),
+                "renderer_used": "remotion" if output_type == "video" else "editly",
+            })
+            log.info("video pipeline complete path=%s elapsed=%.1fs", video_path, elapsed)
+            return manifest
+        except Exception as e:
+            log.error("video pipeline failed: %s", e)
+            raise
+
+    # Steps 3-7: Abyssale rendering (static output)
     abyssale_ok = False
     if template_id:
         try:
