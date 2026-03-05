@@ -1,0 +1,26 @@
+{
+  "name": "AdGen Video Architecture — Remotion + Editly Integration",
+  "spec": "Video ad creation and editing integrated into AdGen pipeline",
+  "criteria": [
+    {"id": "ISC-V-001", "statement": "Remotion project scaffolded in workspace/video/ with package.json and tsconfig"},
+    {"id": "ISC-V-002", "statement": "theme.ts loaded with Telnyx brand tokens (PP Formula, Inter, brand colors)"},
+    {"id": "ISC-V-003", "statement": "PP Formula and Inter font files in video/public/fonts/"},
+    {"id": "ISC-V-004", "statement": "At least 4 Remotion composition templates exist (ProductLaunch, SocialAd, StatReveal, FeatureDemo)"},
+    {"id": "ISC-V-005", "statement": "Each composition accepts props for headline, subhead, CTA, hero image, accent color"},
+    {"id": "ISC-V-006", "statement": "Compositions render at 1920x1080, 1080x1080, and 1080x1920 aspect ratios"},
+    {"id": "ISC-V-007", "statement": "scripts/render_video.py orchestrates Remotion render via CLI subprocess"},
+    {"id": "ISC-V-008", "statement": "render_video.py accepts JSON stdin with brief, template, format, duration"},
+    {"id": "ISC-V-009", "statement": "render_video.py outputs MP4 to workspace/output/ directory"},
+    {"id": "ISC-V-010", "statement": "scripts/edit_video.py wraps editly for clip assembly from JSON spec"},
+    {"id": "ISC-V-011", "statement": "edit_video.py supports cut, trim, splice, overlay, and title card operations"},
+    {"id": "ISC-V-012", "statement": "pipeline.py updated with output_type parameter: 'static' (Abyssale), 'video' (Remotion), 'edit' (Editly)"},
+    {"id": "ISC-V-013", "statement": "DALL-E/Gemini hero images usable as Remotion composition backgrounds"},
+    {"id": "ISC-V-014", "statement": "Video output gets metadata sidecar JSON same as static assets"},
+    {"id": "ISC-V-015", "statement": "SOUL.md documents when to use static vs video vs edit output"},
+    {"id": "ISC-V-016", "statement": "TOOLS.md documents render_video.py and edit_video.py usage"},
+    {"id": "ISC-V-017", "statement": "Remotion dependencies installable via npm install in video/ directory"},
+    {"id": "ISC-V-018", "statement": "editly installed globally or locally and callable from edit_video.py"},
+    {"id": "ISC-V-019", "statement": "E2E test: brief → Remotion render → MP4 output posted to Slack"},
+    {"id": "ISC-V-020", "statement": "Video renders complete in under 60 seconds for a 15-second ad"}
+  ]
+}

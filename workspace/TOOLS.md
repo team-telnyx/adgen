@@ -226,3 +226,17 @@ MEDIA:output/healthcare-q1/linkedin_1200x1200.png
 - Use RELATIVE paths from workspace root
 - Put each MEDIA: on its own line
 - NEVER use absolute paths
+
+## Video Generation
+
+### render_video.py (Remotion)
+```bash
+echo '{"composition":"ProductLaunch","props":{"headline":"Cut Wait Times 40%","subhead":"AI-native voice","cta":"See Demo","accentColor":"#D4E510"},"format":"landscape","output":"output/video.mp4"}' | python3 scripts/render_video.py
+```
+Compositions: ProductLaunch, SocialAd, StatReveal, FeatureDemo
+Formats: landscape (1920x1080), square (1080x1080), vertical (1080x1920)
+
+### edit_video.py (Editly)
+```bash
+echo '{"operation":"assemble","clips":[{"path":"clip1.mp4"},{"path":"clip2.mp4"}],"output":"output/assembled.mp4"}' | python3 scripts/edit_video.py
+```
