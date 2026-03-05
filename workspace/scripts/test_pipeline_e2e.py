@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """E2E test — brief → library search → asset or generate → feedback loop → learning.
 Tests the FULL feedback loop: record → boost → rank change → summary."""
-import json, subprocess, sys, time
+import json, shutil, subprocess, sys, time
+from datetime import datetime, timezone
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent
-FEEDBACK = SCRIPTS.parent / "brand" / "library" / "feedback.json"
+WORKSPACE = SCRIPTS.parent
+FEEDBACK = WORKSPACE / "brand" / "library" / "feedback.json"
 OK, FAIL, results = "\033[92mPASS\033[0m", "\033[91mFAIL\033[0m", []
 
 
@@ -196,6 +198,121 @@ def main():
         # Reload and verify integrity
         fb3 = json.loads(FEEDBACK.read_text())
         step("Data persists on re-read", fb2 == fb3)
+
+        # ── Section 8: Variant Engine ──
+        print("\n── Section 8: Variant Engine ──")
+
+        # Import variant_engine directly
+        sys.path.insert(0, str(SCRIPTS))
+        import variant_engine
+
+        # Test 1: Generate requested number of variants
+        ve_brief = {
+            "headline": "Cut Patient Wait Times 40%",
+            "subhead": "AI-native voice infrastructure",
+            "cta": "Talk to Sales",
+            "persona": "cio_healthcare",
+            "campaign": "ve_test",
+        }
+        ve_cfg = {
+            "brief": ve_brief,
+            "variants": 4,
+            "vary": ["headline", "template", "accent_color"],
+            "output_dir": "output/variants/ve_test",
+        }
+        try:
+            manifest = variant_engine.generate_variants(ve_cfg)
+            step("Variant engine produces requested count",
+                 manifest["total_variants"] == 4,
+                 f"got={manifest['total_variants']}")
+
+            # Test 2: Each variant has different params
+            param_sets = set()
+            for v in manifest["variants"]:
+                key = (v["headline"], v["template"], v["accent_color"])
+                param_sets.add(key)
+            step("Each variant has different params",
+                 len(param_sets) == len(manifest["variants"]),
+                 f"unique={len(param_sets)} total={len(manifest['variants'])}")
+
+            # Test 3: Manifest includes all paths and labels
+            all_have_paths = all(v.get("path") for v in manifest["variants"] if v["rendered"])
+            all_have_labels = all(v.get("label") for v in manifest["variants"])
+            step("All variants have paths", all_have_paths)
+            step("All variants have labels", all_have_labels)
+
+            # Test 4: Manifest structure is correct
+            step("Manifest has vary_axes", manifest.get("vary_axes") == ["headline", "template", "accent_color"])
+            step("Manifest has elapsed_seconds", "elapsed_seconds" in manifest)
+            step("Manifest has rendered_ok count", "rendered_ok" in manifest)
+            step("Manifest has brief", manifest.get("brief", {}).get("headline") == ve_brief["headline"])
+
+            # Test 5: Labels are descriptive
+            label_sample = manifest["variants"][0]["label"]
+            step("Labels include template name", "/" in label_sample, f"label={label_sample}")
+
+            # Test 6: Rendered variants exist on disk
+            rendered_count = sum(1 for v in manifest["variants"] if v["rendered"] and Path(v["path"]).exists())
+            step("Rendered files exist on disk",
+                 rendered_count == manifest["rendered_ok"],
+                 f"on_disk={rendered_count} expected={manifest['rendered_ok']}")
+
+        except Exception as e:
+            step("Variant engine runs without error", False, str(e))
+            for name in ["Each variant has different params", "All variants have paths",
+                         "All variants have labels", "Manifest has vary_axes",
+                         "Manifest has elapsed_seconds", "Manifest has rendered_ok count",
+                         "Manifest has brief", "Labels include template name",
+                         "Rendered files exist on disk"]:
+                step(name + " (skipped)", False, "variant engine failed")
+
+        # Test 7: Variant engine queries feedback boosts when available
+        print("\n── Section 8b: Variant Engine + Feedback ──")
+        # Seed some feedback for cio_healthcare persona
+        if FEEDBACK.exists():
+            FEEDBACK.unlink()
+        fb_seed = {
+            "entries": [
+                {"asset_path": "test.png", "template_id": "dark-hero-left",
+                 "persona": "cio_healthcare", "rating": "positive",
+                 "requester": "test", "headline": "test", "context": "",
+                 "timestamp": datetime.now(timezone.utc).isoformat()},
+                {"asset_path": "test.png", "template_id": "dark-hero-left",
+                 "persona": "cio_healthcare", "rating": "positive",
+                 "requester": "test", "headline": "test", "context": "",
+                 "timestamp": datetime.now(timezone.utc).isoformat()},
+            ]
+        }
+        FEEDBACK.write_text(json.dumps(fb_seed))
+
+        try:
+            boosts = variant_engine.get_template_boosts("cio_healthcare")
+            step("Feedback boosts queried for persona",
+                 "dark-hero-left" in boosts,
+                 f"boosts={boosts}")
+            step("Positive feedback gives positive boost",
+                 boosts.get("dark-hero-left", 0) > 0)
+
+            # Generate with feedback present
+            manifest2 = variant_engine.generate_variants(ve_cfg)
+            step("Variant engine uses feedback boosts",
+                 manifest2.get("feedback_boosts_applied") is True)
+
+            # Verify boosted template appears in at least one variant
+            templates_used = [v["template"] for v in manifest2["variants"]]
+            step("Boosted template appears in variants",
+                 "dark-hero-left" in templates_used,
+                 f"templates={templates_used}")
+        except Exception as e:
+            step("Variant engine with feedback", False, str(e))
+            for name in ["Feedback boosts queried for persona", "Positive feedback gives positive boost",
+                         "Variant engine uses feedback boosts", "Boosted template appears in variants"]:
+                step(name + " (skipped)", False, "feedback test failed")
+
+        # Cleanup variant output
+        ve_output = WORKSPACE / "output" / "variants" / "ve_test"
+        if ve_output.exists():
+            shutil.rmtree(ve_output)
 
     finally:
         if fb_backup is not None:
