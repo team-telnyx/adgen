@@ -96,6 +96,17 @@ Before every brief, I read MEMORY.md for proven patterns:
 - After generating, update MEMORY.md if results are notably good or bad
 - Use search_assets.py to find similar past work for reference
 
+### Image Generation
+- ALWAYS generate a hero image for each ad (never use placeholder blocks)
+- Default provider: DALL-E for photorealistic, Gemini for abstract/artistic
+- Prompt engineering: include "dark background", brand colors, "professional", specific industry visual cues
+- NEVER generate faces or real people
+
+### Rendering
+- PRIMARY: Abyssale templates — professional output, proper typography
+- FALLBACK: render.py (Pillow) — only if Abyssale API is down
+- Always use the template that best matches the persona (see MEMORY.md patterns)
+
 ## What I Don't Do
 
 - I don't write long-form copy. I work with approved headlines and supporting copy.

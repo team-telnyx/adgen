@@ -1,89 +1,21 @@
 # TOOLS.md — AdGen
 
-## render.py
+## Pipeline Overview
 
-The only code in this system. Takes JSON params, outputs PNG.
+The AdGen pipeline produces professional ad creatives from a brief:
 
-### Usage
-```bash
-echo '{"template": "dark-hero-left", "format": "linkedin_1200x1200", ...}' | python3 scripts/render.py
+```
+Brief → AI Hero Image (DALL-E/Gemini) → Upload to Telnyx Storage → Abyssale renders final ad → Download → Metadata
 ```
 
-### Input Schema
-```json
-{
-  "template": "dark-hero-left",
-  "format": "linkedin_1200x1200",
-  "background": "#000000",
-  "headline": "Your Headline Here",
-  "subhead": "Supporting text",
-  "cta": "Talk to Sales",
-  "accent_color": "#D4E510",
-  "hero_image": "brand/imagery/product/portal-dashboard.png",
-  "logo_variant": "wordmark-cream",
-  "output": "output/campaign/format.png"
-}
-```
+**PRIMARY renderer:** Abyssale templates — professional output, proper typography, brand-consistent.
+**FALLBACK renderer:** render.py (Pillow) — only if Abyssale API is unavailable.
 
-### Output
-PNG file at the specified output path.
-
-## Brand Assets
-- Rules: `brand/rules.yaml` — read before every brief
-- Colors: `brand/colors.yaml`
-- Logos: `brand/logos/` — wordmark-cream.png, wordmark-black.png, icon-cream.png, icon-black.png
-- Imagery: `brand/imagery/` — browse `index.md` for tagged catalog
-
-## Image Generation
-- **DALL-E:** `openai` Python SDK for abstract/conceptual imagery
-- **Nano Banana Pro:** Via nano-banana-pro skill for Gemini image generation
-- Only for abstract backgrounds, textures, conceptual visuals
-- Never generate faces, products, or photographic scenes
-
-## Abyssale (Multi-Format Export)
-- Takes master 1200×1200 PNG + text content + brand assets
-- Returns all format variants with intelligent reflow
-- Call via Abyssale API
-
-## Telnyx Storage
-
-**Endpoint:** `https://us-central-1.telnyxcloudstorage.com` (S3-compatible)
-**API Key:** `~/.secrets/telnyx` (used as both access key and secret key)
-
-### Buckets
-
-| Bucket | Purpose |
-|--------|---------|
-| `adgen-brand` | Curated brand assets — logos, imagery, textures, product screenshots |
-| `adgen-output` | Generated ad creatives, campaign outputs, metadata JSONs |
-
-### storage.py — Upload / Download / List
-
-Pipe JSON to stdin. Reads API key from `~/.secrets/telnyx` at runtime.
-
-**Upload a brand asset:**
-```bash
-echo '{"action":"upload","bucket":"adgen-brand","local_path":"brand/imagery/product/portal-dashboard.png","remote_key":"imagery/product/portal-dashboard.png"}' | python3 scripts/storage.py
-```
-
-**Download a generated output:**
-```bash
-echo '{"action":"download","bucket":"adgen-output","remote_key":"healthcare-q2/linkedin.png","local_path":"output/downloaded.png"}' | python3 scripts/storage.py
-```
-
-**List objects with prefix:**
-```bash
-echo '{"action":"list","bucket":"adgen-brand","prefix":"imagery/"}' | python3 scripts/storage.py
-```
-
-**Environment overrides:**
-- `TELNYX_API_KEY` — use instead of `~/.secrets/telnyx`
-- `TELNYX_STORAGE_ENDPOINT` — override storage endpoint
+---
 
 ## pipeline.py — Full Brief-to-Assets Pipeline
 
-Orchestrates the complete workflow: hero generation → render → metadata → multi-format export.
-Call this instead of individual scripts.
+The main orchestrator. Call this for all ad generation.
 
 ### Usage
 ```bash
@@ -95,12 +27,10 @@ echo '{
     "persona": "cio_healthcare",
     "campaign": "healthcare-q2"
   },
-  "template": "dark-hero-left",
-  "accent_color": "#D4E510",
-  "hero_image": "brand/imagery/product/portal-dashboard.png",
-  "generate_hero": false,
-  "formats": ["linkedin_1200x1200", "google_rectangle", "meta_1080x1080"],
-  "variants": 1,
+  "image_provider": "dalle",
+  "image_prompt": "Abstract medical network visualization, dark background with green accent lighting, professional healthcare technology",
+  "abyssale_template": "7b8f744f",
+  "formats": ["facebook-featured"],
   "output_dir": "output/healthcare-q2"
 }' | python3 scripts/pipeline.py
 ```
@@ -114,67 +44,185 @@ echo '{
 | `brief.cta` | string | `""` | Call-to-action button text |
 | `brief.persona` | string | `""` | Target persona tag |
 | `brief.campaign` | string | `""` | Campaign identifier |
-| `template` | string | rotates | Template name (or omit for auto-rotation with variants) |
-| `accent_color` | string | `#D4E510` | Brand accent color hex |
-| `hero_image` | string | `""` | Path to curated hero image |
-| `generate_hero` | bool | `false` | Generate hero via AI instead |
-| `hero_prompt` | string | `""` | Prompt for AI hero generation |
-| `hero_provider` | string | `"dalle"` | `dalle` or `gemini` |
-| `formats` | list | `["linkedin_1200x1200"]` | Output format names |
-| `variants` | int | `1` | Number of color/template variants |
+| `image_provider` | string | `"dalle"` | `dalle` or `gemini` |
+| `image_prompt` | string | `""` | Prompt for AI hero image generation |
+| `abyssale_template` | string | `""` | Abyssale template ID (full UUID or short ID) |
+| `formats` | list | `["facebook-featured"]` | Abyssale format names from template |
 | `output_dir` | string | `"output/campaign"` | Output directory |
-| `background` | string | `"#000000"` | Background color hex |
+| `background` | string | `"#000000"` | Background color (used in Pillow fallback) |
+
+### Pipeline Steps
+1. Generate hero image via DALL-E or Gemini (`generate_image.py`)
+2. Upload hero to Telnyx Storage for public URL (`storage.py`)
+3. Fetch Abyssale template details to discover elements
+4. Smart-map brief fields → template elements (headline→title, subhead→subtitle, hero→image)
+5. Call Abyssale generation API per format
+6. Download generated images to output_dir
+7. Create metadata sidecar per file (`asset_metadata.py`)
+8. If Abyssale fails at any step → fall back to Pillow render.py
 
 ### Output
-JSON manifest to stdout with all generated file paths, variant details, and timing.
-
-### Variants
-When `variants` > 1, the pipeline rotates through brand palette colors (`#00C26E`, `#D4E510`, `#FF6B9D`) and optionally templates. Each variant gets a subdirectory (`v1/`, `v2/`, etc.).
+JSON manifest to stdout with all generated file paths, renderer used, timing.
 
 ---
 
-## save_to_library.py — Save Images to Brand Library
+## generate_image.py — AI Image Generation
 
-For saving uploaded images (e.g., from Slack) into the curated brand library.
+Generates hero images via DALL-E 3 or Gemini.
 
 ### Usage
 ```bash
 echo '{
-  "source_path": "/tmp/uploaded-image.png",
-  "category": "product",
-  "filename": "portal-dashboard-dark.png",
-  "tags": ["portal", "dashboard", "dark", "professional"],
-  "description": "Dark-themed portal dashboard screenshot"
-}' | python3 scripts/save_to_library.py
+  "prompt": "Abstract medical network, dark background, green accents",
+  "provider": "dalle",
+  "output": "output/hero.png",
+  "size": "1024x1024",
+  "style": "natural"
+}' | python3 scripts/generate_image.py
 ```
 
-### What it does
-1. Validates image (PNG/JPG, minimum 2400px)
-2. Copies to `brand/imagery/{category}/{filename}`
-3. Updates `brand/imagery/index.md` with entry + tags
-4. Uploads to Telnyx Storage (`adgen-brand` bucket)
-5. Returns confirmation JSON
-
-### Input Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `source_path` | string | yes | Path to the source image |
-| `category` | string | yes | Library category: `product`, `abstract`, `photography` |
-| `filename` | string | yes | Target filename in library |
-| `tags` | list | no | Tags for index.md searchability |
-| `description` | string | no | Human-readable description |
+| Provider | Best For |
+|----------|----------|
+| `dalle` | Photorealistic imagery, product visuals, industry scenes |
+| `gemini` | Abstract/artistic, textures, conceptual backgrounds |
 
 ---
 
+## abyssale_export.py — Abyssale Smart Export
+
+Standalone Abyssale generation with auto-discovery. Can be used independently of the pipeline.
+
+### Smart Mode (recommended)
+```bash
+echo '{
+  "template_id": "7b8f744f-1faf-4b14-91ed-76a8e3028753",
+  "brief": {
+    "headline": "Your Headline",
+    "subhead": "Supporting text",
+    "cta": "Learn More"
+  },
+  "hero_url": "https://public-url-to-hero.png",
+  "output_dir": "output/export/"
+}' | python3 scripts/abyssale_export.py
+```
+
+Auto-discovers template elements, maps brief fields intelligently, generates all available formats.
+
+### Direct Mode (legacy)
+```bash
+echo '{
+  "template_id": "7b8f744f-1faf-4b14-91ed-76a8e3028753",
+  "elements": {
+    "proper_name": {"text": "AI Latency"},
+    "tb-image_0": {"image_url": "https://..."}
+  },
+  "formats": ["facebook-featured"],
+  "output_dir": "output/export/"
+}' | python3 scripts/abyssale_export.py
+```
+
+---
+
+## render.py — Pillow Render (Fallback Only)
+
+Local PNG renderer using Pillow. **Used only when Abyssale is unavailable.**
+
+### Usage
+```bash
+echo '{"template": "dark-hero-left", "format": "linkedin_1200x1200", ...}' | python3 scripts/render.py
+```
+
+### Templates
+`dark-hero-left`, `light-minimal`, `split-panel`, `full-bleed-dark`, `stats-hero`, `gradient-accent`, `testimonial`, `product-screenshot`
+
+### Formats
+`linkedin_1200x1200`, `linkedin_carousel`, `google_rectangle`, `google_leaderboard`, `google_skyscraper`, `reddit_feed`, `twitter_single`, `meta_feed`, `meta_stories`
+
+---
+
+## Abyssale Templates
+
+Template catalog at: `brand/abyssale-templates.json` (29 templates)
+
+### Key Templates
+
+| ID | Name | Type | Use Case |
+|----|------|------|----------|
+| `7b8f744f` | AI Glossary - Social | static | Social ads with image + text |
+| `d80699fc` | RC Post Featured Image | static | Blog/article featured images |
+| `3902c53d` | Display Single Image Ad 1 | static | Google Display 300×250 |
+| `2c966e99` | Display Ad 1 | static | Google Display 300×600 |
+| `7323ba26` | Display ad horizontal 1 | static | Google Leaderboard 728×90 |
+| `1d8e159b` | CIP - LinkedIn Video | animated | LinkedIn video ads |
+| `0fbafb13` | LinkedIn Organic GIF | animated | LinkedIn organic posts |
+
+### Abyssale API Reference
+- Template list: `GET https://api.abyssale.com/templates` (header: `x-api-key`)
+- Template details: `GET https://api.abyssale.com/templates/{id}`
+- Generate: `POST https://api.abyssale.com/banner-builder/{id}/generate`
+  ```json
+  {
+    "template_format_name": "format-name",
+    "elements": {
+      "element_name": {"payload": "text value"},
+      "element_name": {"image_url": "https://..."}
+    }
+  }
+  ```
+
+---
+
+## Telnyx Storage
+
+**Endpoint:** `https://us-central-1.telnyxcloudstorage.com` (S3-compatible)
+**API Key:** `~/.secrets/telnyx` (used as both access key and secret key)
+
+### Buckets
+
+| Bucket | Purpose |
+|--------|---------|
+| `adgen-brand` | Curated brand assets + uploaded hero images for Abyssale |
+| `adgen-output` | Generated ad creatives, campaign outputs |
+
+### storage.py — Upload / Download / List
+
+```bash
+echo '{"action":"upload","bucket":"adgen-brand","local_path":"hero.png","remote_key":"heroes/hero.png"}' | python3 scripts/storage.py
+echo '{"action":"download","bucket":"adgen-output","remote_key":"ad.png","local_path":"dl.png"}' | python3 scripts/storage.py
+echo '{"action":"list","bucket":"adgen-brand","prefix":"heroes/"}' | python3 scripts/storage.py
+```
+
+---
+
+## Brand Assets
+- Rules: `brand/rules.yaml`
+- Colors: `brand/colors.yaml`
+- Logos: `brand/logos/`
+- Imagery: `brand/imagery/` — browse `index.md`
+- Abyssale templates: `brand/abyssale-templates.json`
+
 ## Telnyx Embeddings
 
-For semantic search over the asset library and creative history:
+For semantic search over assets:
 ```bash
 curl -s -X POST "https://api.telnyx.com/v2/ai/embeddings" \
   -H "Authorization: Bearer $TELNYX_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model": "thenlper/gte-large", "input": "search query"}'
 ```
-Models: `thenlper/gte-large`, `intfloat/multilingual-e5-large`
-Use for: asset search, finding similar creatives, tagging recommendations.
+
+## CRITICAL: File Output Paths
+
+**ALL generated files MUST be saved to `workspace/output/` (relative to workspace root).**
+- NEVER save to `/tmp/` or any path outside the workspace
+- Use relative paths from the workspace root
+
+## Posting Images to Slack (CRITICAL)
+
+Use the `MEDIA:` prefix:
+```
+MEDIA:output/healthcare-q1/linkedin_1200x1200.png
+```
+- Use RELATIVE paths from workspace root
+- Put each MEDIA: on its own line
+- NEVER use absolute paths
