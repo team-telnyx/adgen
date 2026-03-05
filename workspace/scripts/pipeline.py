@@ -14,7 +14,8 @@ logging.Formatter.converter = time.gmtime
 SCRIPTS_DIR = Path(__file__).resolve().parent
 WORKSPACE = SCRIPTS_DIR.parent
 ABYSSALE_BASE = "https://api.abyssale.com"
-STORAGE_BUCKET = "adgen-brand"
+STORAGE_BUCKET_BRAND = "adgen-brand"
+STORAGE_BUCKET_OUTPUT = "adgen-output"
 
 
 def read_secret(name: str) -> str:
@@ -37,16 +38,23 @@ def run_script(name: str, payload: dict) -> dict:
     return json.loads(proc.stdout) if proc.stdout.strip() else {}
 
 
-def upload_to_storage(local_path: str, remote_key: str) -> str:
-    log.info("uploading to storage key=%s", remote_key)
-    result = run_script("storage.py", {"action": "upload", "bucket": STORAGE_BUCKET,
+def upload_to_storage(local_path: str, remote_key: str,
+                      bucket: str = STORAGE_BUCKET_BRAND) -> str:
+    """Upload a file to Telnyx Storage. Returns the public URL."""
+    log.info("uploading to storage bucket=%s key=%s", bucket, remote_key)
+    result = run_script("storage.py", {"action": "upload", "bucket": bucket,
                                         "local_path": local_path, "remote_key": remote_key,
                                         "acl": "public-read"})
     if not result.get("ok"):
         raise RuntimeError(f"Storage upload failed: {result}")
-    url = f"https://{STORAGE_BUCKET}.us-central-1.telnyxcloudstorage.com/{remote_key}"
+    url = f"https://{bucket}.us-central-1.telnyxcloudstorage.com/{remote_key}"
     log.info("uploaded url=%s", url)
     return url
+
+
+def upload_output(local_path: str, remote_key: str) -> str:
+    """Upload a rendered asset to the adgen-output bucket."""
+    return upload_to_storage(local_path, remote_key, bucket=STORAGE_BUCKET_OUTPUT)
 
 
 def fetch_template(template_id: str, api_key: str) -> dict:
@@ -129,12 +137,15 @@ def pillow_fallback(brief: dict, fmt: str, output: str, hero: str, bg: str) -> s
     return str(WORKSPACE / output) if not Path(output).is_absolute() else output
 
 
-def write_metadata(asset_path: str, brief: dict, extra: dict):
+def write_metadata(asset_path: str, brief: dict, extra: dict) -> dict:
+    """Write metadata sidecar and upload to adgen-output bucket."""
     meta = {"asset_path": asset_path, "campaign": brief.get("campaign", ""),
             "persona": brief.get("persona", ""), "headline": brief["headline"],
-            "subhead": brief.get("subhead", ""), "cta": brief.get("cta", "")}
+            "subhead": brief.get("subhead", ""), "cta": brief.get("cta", ""),
+            "accent_color": brief.get("accent_color", ""),
+            "upload_to_storage": True}
     meta.update(extra)
-    run_script("asset_metadata.py", meta)
+    return run_script("asset_metadata.py", meta)
 
 
 def run_video_pipeline(cfg: dict, hero_url: str | None, hero_local: str | None) -> dict:
@@ -224,10 +235,11 @@ def run_pipeline(cfg: dict) -> dict:
         manifest["hero_source"] = "generated"
         log.info("asset_source=generated engine=%s", provider)
 
-        # Step 2: Upload to Telnyx Storage
+        # Step 2: Upload hero to adgen-brand bucket
         ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         try:
-            hero_url = upload_to_storage(hero_local, f"heroes/{brief.get('campaign','misc')}/{ts}-hero.png")
+            hero_url = upload_to_storage(hero_local, f"heroes/{brief.get('campaign','misc')}/{ts}-hero.png",
+                                         bucket=STORAGE_BUCKET_BRAND)
             manifest["hero_url"] = hero_url
         except Exception as e:
             log.warning("storage upload failed: %s", e)
@@ -297,7 +309,23 @@ def run_pipeline(cfg: dict) -> dict:
                 if fmt not in avail:
                     log.warning("format %s not in template (available: %s)", fmt, avail)
                     p = pillow_fallback(brief, "linkedin_1200x1200", f"{output_dir}/{fmt}.png", hero_local or "", bg)
-                    manifest["files"].append({"format": fmt, "path": p, "renderer": "pillow-fallback"})
+                    file_entry = {"format": fmt, "path": p, "renderer": "pillow-fallback"}
+                    # Upload to adgen-output
+                    ts_fb = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+                    campaign = brief.get("campaign", "misc")
+                    try:
+                        output_url = upload_output(p, f"renders/{campaign}/{ts_fb}-{fmt}.png")
+                        file_entry["storage_url"] = output_url
+                    except Exception as e:
+                        log.warning("output upload failed for fallback %s: %s", fmt, e)
+                    manifest["files"].append(file_entry)
+                    meta_result = write_metadata(p, brief, {
+                        "format": "linkedin_1200x1200", "renderer": "pillow-fallback",
+                        "imagery_source": manifest.get("hero_source", "generated"),
+                    })
+                    if meta_result.get("storage_url"):
+                        file_entry["meta_storage_url"] = meta_result["storage_url"]
+                    abyssale_ok = True  # Mark as handled so outer fallback doesn't re-render
                     continue
                 res = generate_abyssale(template_id, fmt, elem_map, api_key)
                 cdn = res.get("file", {}).get("cdn_url") or res.get("file", {}).get("url", "")
@@ -305,11 +333,28 @@ def run_pipeline(cfg: dict) -> dict:
                     ext = "jpeg" if "jpeg" in cdn else "png"
                     local = str(WORKSPACE / output_dir / f"{fmt}.{ext}")
                     download_file(cdn, local)
-                    manifest["files"].append({"format": fmt, "path": local, "renderer": "abyssale",
-                                              "cdn_url": cdn, "abyssale_id": res.get("id")})
+                    file_entry = {"format": fmt, "path": local, "renderer": "abyssale",
+                                  "cdn_url": cdn, "abyssale_id": res.get("id")}
                     abyssale_ok = True
-                    write_metadata(local, brief, {"template_id": template_id, "format": fmt,
-                                                   "renderer": "abyssale", "cdn_url": cdn, "hero_url": hero_url or ""})
+
+                    # Upload rendered asset to adgen-output bucket
+                    ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+                    campaign = brief.get("campaign", "misc")
+                    try:
+                        output_url = upload_output(local, f"renders/{campaign}/{ts}-{fmt}.{ext}")
+                        file_entry["storage_url"] = output_url
+                    except Exception as e:
+                        log.warning("output upload failed for %s: %s", fmt, e)
+
+                    manifest["files"].append(file_entry)
+                    meta_result = write_metadata(local, brief, {
+                        "template_id": template_id, "format": fmt,
+                        "renderer": "abyssale", "cdn_url": cdn,
+                        "hero_url": hero_url or "",
+                        "imagery_source": manifest.get("hero_source", "generated"),
+                    })
+                    if meta_result.get("storage_url"):
+                        file_entry["meta_storage_url"] = meta_result["storage_url"]
         except Exception as e:
             log.error("abyssale failed: %s — using pillow", e)
 
@@ -320,8 +365,24 @@ def run_pipeline(cfg: dict) -> dict:
             pfmt = fmt_map.get(fmt, "linkedin_1200x1200")
             try:
                 p = pillow_fallback(brief, pfmt, f"{output_dir}/{fmt}.png", hero_local or "", bg)
-                manifest["files"].append({"format": fmt, "path": p, "renderer": "pillow-fallback"})
-                write_metadata(p, brief, {"format": pfmt, "renderer": "pillow-fallback"})
+                file_entry = {"format": fmt, "path": p, "renderer": "pillow-fallback"}
+
+                # Upload rendered asset to adgen-output bucket
+                ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+                campaign = brief.get("campaign", "misc")
+                try:
+                    output_url = upload_output(p, f"renders/{campaign}/{ts}-{fmt}.png")
+                    file_entry["storage_url"] = output_url
+                except Exception as e:
+                    log.warning("output upload failed for %s: %s", fmt, e)
+
+                manifest["files"].append(file_entry)
+                meta_result = write_metadata(p, brief, {
+                    "format": pfmt, "renderer": "pillow-fallback",
+                    "imagery_source": manifest.get("hero_source", "generated"),
+                })
+                if meta_result.get("storage_url"):
+                    file_entry["meta_storage_url"] = meta_result["storage_url"]
             except Exception as e:
                 log.error("pillow fallback failed for %s: %s", fmt, e)
 
