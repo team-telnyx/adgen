@@ -199,14 +199,14 @@ def main():
         fb3 = json.loads(FEEDBACK.read_text())
         step("Data persists on re-read", fb2 == fb3)
 
-        # ── Section 8: Variant Engine ──
-        print("\n── Section 8: Variant Engine ──")
+        # ── Section 8: Multi-render variants (render.py called multiple times) ──
+        print("\n── Section 8: Multi-render variants via render.py ──")
 
-        # Import variant_engine directly
+        # Per SOUL.md, variants are now handled by Claude's judgment calling
+        # render.py multiple times with different params — no variant_engine.py.
         sys.path.insert(0, str(SCRIPTS))
-        import variant_engine
+        import render as render_engine
 
-        # Test 1: Generate requested number of variants
         ve_brief = {
             "headline": "Cut Patient Wait Times 40%",
             "subhead": "AI-native voice infrastructure",
@@ -214,103 +214,65 @@ def main():
             "persona": "cio_healthcare",
             "campaign": "ve_test",
         }
-        ve_cfg = {
-            "brief": ve_brief,
-            "variants": 4,
-            "vary": ["headline", "template", "accent_color"],
-            "output_dir": "output/variants/ve_test",
-        }
+
+        # Define variant configs — simulating what Claude would generate
+        variant_configs = [
+            {"template": "dark-hero-left", "accent_color": "#D4E510", "headline": ve_brief["headline"]},
+            {"template": "stats-hero", "accent_color": "#00C26E", "headline": "The 40% Advantage"},
+            {"template": "split-panel", "accent_color": "#D4E510", "headline": ve_brief["headline"]},
+            {"template": "gradient-accent", "accent_color": "#D4E510", "headline": "Cut Wait Times 40%"},
+        ]
+
+        ve_output = WORKSPACE / "output" / "variants" / "ve_test"
+        ve_output.mkdir(parents=True, exist_ok=True)
+
+        rendered_paths = []
         try:
-            manifest = variant_engine.generate_variants(ve_cfg)
-            step("Variant engine produces requested count",
-                 manifest["total_variants"] == 4,
-                 f"got={manifest['total_variants']}")
+            for i, vc in enumerate(variant_configs, 1):
+                render_data = {
+                    "template": vc["template"],
+                    "format": "linkedin_1200x1200",
+                    "background": "#000000" if vc["template"] in render_engine.DARK_TEMPLATES else "#F5F0E8",
+                    "headline": vc["headline"],
+                    "subhead": ve_brief.get("subhead", ""),
+                    "cta": ve_brief.get("cta", ""),
+                    "accent_color": vc["accent_color"],
+                    "output": f"output/variants/ve_test/V{i}.png",
+                }
+                render_engine.render(render_data)
+                out_path = WORKSPACE / f"output/variants/ve_test/V{i}.png"
+                rendered_paths.append(out_path)
 
-            # Test 2: Each variant has different params
-            param_sets = set()
-            for v in manifest["variants"]:
-                key = (v["headline"], v["template"], v["accent_color"])
-                param_sets.add(key)
-            step("Each variant has different params",
-                 len(param_sets) == len(manifest["variants"]),
-                 f"unique={len(param_sets)} total={len(manifest['variants'])}")
+            step("All 4 variants rendered", len(rendered_paths) == 4)
 
-            # Test 3: Manifest includes all paths and labels
-            all_have_paths = all(v.get("path") for v in manifest["variants"] if v["rendered"])
-            all_have_labels = all(v.get("label") for v in manifest["variants"])
-            step("All variants have paths", all_have_paths)
-            step("All variants have labels", all_have_labels)
+            # Each variant file exists on disk
+            on_disk = sum(1 for p in rendered_paths if p.exists())
+            step("Rendered files exist on disk", on_disk == 4, f"on_disk={on_disk}")
 
-            # Test 4: Manifest structure is correct
-            step("Manifest has vary_axes", manifest.get("vary_axes") == ["headline", "template", "accent_color"])
-            step("Manifest has elapsed_seconds", "elapsed_seconds" in manifest)
-            step("Manifest has rendered_ok count", "rendered_ok" in manifest)
-            step("Manifest has brief", manifest.get("brief", {}).get("headline") == ve_brief["headline"])
-
-            # Test 5: Labels are descriptive
-            label_sample = manifest["variants"][0]["label"]
-            step("Labels include template name", "/" in label_sample, f"label={label_sample}")
-
-            # Test 6: Rendered variants exist on disk
-            rendered_count = sum(1 for v in manifest["variants"] if v["rendered"] and Path(v["path"]).exists())
-            step("Rendered files exist on disk",
-                 rendered_count == manifest["rendered_ok"],
-                 f"on_disk={rendered_count} expected={manifest['rendered_ok']}")
-
-        except Exception as e:
-            step("Variant engine runs without error", False, str(e))
-            for name in ["Each variant has different params", "All variants have paths",
-                         "All variants have labels", "Manifest has vary_axes",
-                         "Manifest has elapsed_seconds", "Manifest has rendered_ok count",
-                         "Manifest has brief", "Labels include template name",
-                         "Rendered files exist on disk"]:
-                step(name + " (skipped)", False, "variant engine failed")
-
-        # Test 7: Variant engine queries feedback boosts when available
-        print("\n── Section 8b: Variant Engine + Feedback ──")
-        # Seed some feedback for cio_healthcare persona
-        if FEEDBACK.exists():
-            FEEDBACK.unlink()
-        fb_seed = {
-            "entries": [
-                {"asset_path": "test.png", "template_id": "dark-hero-left",
-                 "persona": "cio_healthcare", "rating": "positive",
-                 "requester": "test", "headline": "test", "context": "",
-                 "timestamp": datetime.now(timezone.utc).isoformat()},
-                {"asset_path": "test.png", "template_id": "dark-hero-left",
-                 "persona": "cio_healthcare", "rating": "positive",
-                 "requester": "test", "headline": "test", "context": "",
-                 "timestamp": datetime.now(timezone.utc).isoformat()},
-            ]
-        }
-        FEEDBACK.write_text(json.dumps(fb_seed))
-
-        try:
-            boosts = variant_engine.get_template_boosts("cio_healthcare")
-            step("Feedback boosts queried for persona",
-                 "dark-hero-left" in boosts,
-                 f"boosts={boosts}")
-            step("Positive feedback gives positive boost",
-                 boosts.get("dark-hero-left", 0) > 0)
-
-            # Generate with feedback present
-            manifest2 = variant_engine.generate_variants(ve_cfg)
-            step("Variant engine uses feedback boosts",
-                 manifest2.get("feedback_boosts_applied") is True)
-
-            # Verify boosted template appears in at least one variant
-            templates_used = [v["template"] for v in manifest2["variants"]]
-            step("Boosted template appears in variants",
-                 "dark-hero-left" in templates_used,
+            # Each variant uses a different template
+            templates_used = [vc["template"] for vc in variant_configs]
+            step("Each variant uses different template",
+                 len(set(templates_used)) == len(templates_used),
                  f"templates={templates_used}")
+
+            # Verify rendered images are valid PNGs with correct dimensions
+            from PIL import Image as PILImage
+            for p in rendered_paths:
+                img = PILImage.open(p)
+                step(f"V{rendered_paths.index(p)+1} has correct dimensions",
+                     img.size == (1200, 1200),
+                     f"size={img.size}")
+
+            # Variants are different files (different content)
+            sizes = [p.stat().st_size for p in rendered_paths]
+            step("Variants have different content",
+                 len(set(sizes)) > 1,
+                 f"sizes={sizes}")
+
         except Exception as e:
-            step("Variant engine with feedback", False, str(e))
-            for name in ["Feedback boosts queried for persona", "Positive feedback gives positive boost",
-                         "Variant engine uses feedback boosts", "Boosted template appears in variants"]:
-                step(name + " (skipped)", False, "feedback test failed")
+            step("Multi-render variant generation", False, str(e))
 
         # Cleanup variant output
-        ve_output = WORKSPACE / "output" / "variants" / "ve_test"
         if ve_output.exists():
             shutil.rmtree(ve_output)
 
