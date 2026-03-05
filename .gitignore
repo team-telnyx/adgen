@@ -1,3 +1,4 @@
 workspace/video/node_modules/
 workspace/video/dist/
 workspace/output/
+__pycache__/
