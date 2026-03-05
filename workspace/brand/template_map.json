@@ -1,0 +1,989 @@
+{
+  "templates": [
+    {
+      "id": "7b8f744f-1faf-4b14-91ed-76a8e3028753",
+      "name": "AI Glossary - Social",
+      "type": "static",
+      "category": "social",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "tb-text_2",
+          "tb-text_0",
+          "proper_name"
+        ],
+        "image": [
+          "tb-image_2",
+          "tb-image_0"
+        ]
+      },
+      "formats": [
+        {
+          "name": "facebook-featured",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "facebook_ad",
+        "social_post"
+      ],
+      "personas": [
+        "developer",
+        "technical",
+        "ai_engineer"
+      ]
+    },
+    {
+      "id": "1d8e159b-69d3-4e8f-949f-fc4b71c53732",
+      "name": "CIP - LinkedIn Video",
+      "type": "animated",
+      "category": "social",
+      "category_name": "n8n automation",
+      "elements": {
+        "text": [
+          "1_tag",
+          "text_0",
+          "1_headline",
+          "1_byline"
+        ],
+        "image": [
+          "image_0"
+        ]
+      },
+      "formats": [
+        {
+          "name": "landscape-video",
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "name": "linkedin-square",
+          "width": 1200,
+          "height": 1200
+        }
+      ],
+      "use_cases": [
+        "linkedin_post",
+        "animated",
+        "linkedin_ad",
+        "social_post"
+      ],
+      "personas": [
+        "marketing",
+        "executive",
+        "product"
+      ]
+    },
+    {
+      "id": "deb0ddd8-faff-4d1f-b4be-bd4557295470",
+      "name": "Consumer Insight Panel",
+      "type": "static",
+      "category": "consumer_insight",
+      "category_name": "Consumer Insight Panels",
+      "elements": {
+        "text": [
+          "5-percent",
+          "5-text",
+          "4-percent",
+          "4-text",
+          "3-percent",
+          "3-text",
+          "2-percent",
+          "2-text",
+          "1-percent",
+          "1-text",
+          "cip-text",
+          "data-reporting-text",
+          "question",
+          "heading"
+        ],
+        "image": [
+          "logo"
+        ]
+      },
+      "formats": [
+        {
+          "name": "cip-chart",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "consumer_insight",
+        "data_visualization",
+        "social_post"
+      ],
+      "personas": [
+        "marketing",
+        "executive",
+        "product"
+      ]
+    },
+    {
+      "id": "2c966e99-51a4-44ce-808b-8964e18febd2",
+      "name": "Display Ad 1 300x600",
+      "type": "static",
+      "category": "display_ad",
+      "category_name": "Display Ads - DG",
+      "elements": {
+        "text": [
+          "headline",
+          "subheadline",
+          "button_text"
+        ],
+        "image": [
+          "background_image",
+          "image"
+        ]
+      },
+      "formats": [
+        {
+          "name": "half-page_300x600",
+          "width": 300,
+          "height": 600
+        }
+      ],
+      "use_cases": [
+        "display_ad",
+        "half_page"
+      ],
+      "personas": [
+        "general",
+        "enterprise"
+      ]
+    },
+    {
+      "id": "7323ba26-c6a1-4c81-bef6-764b17237224",
+      "name": "Display ad horizontal 1 728x90",
+      "type": "static",
+      "category": "display_ad",
+      "category_name": "Display Ads - DG",
+      "elements": {
+        "text": [
+          "headline",
+          "button_text"
+        ],
+        "image": []
+      },
+      "formats": [
+        {
+          "name": "leaderboard_728x90",
+          "width": 728,
+          "height": 90
+        }
+      ],
+      "use_cases": [
+        "display_ad",
+        "leaderboard"
+      ],
+      "personas": [
+        "general",
+        "enterprise"
+      ]
+    },
+    {
+      "id": "2c487e3e-91ae-4037-9d26-b5b741166924",
+      "name": "Display ad horizontal logo right 728x90",
+      "type": "static",
+      "category": "display_ad",
+      "category_name": "Display Ads - DG",
+      "elements": {
+        "text": [
+          "headline"
+        ],
+        "image": [
+          "image_small"
+        ]
+      },
+      "formats": [
+        {
+          "name": "leaderboard_728x90",
+          "width": 728,
+          "height": 90
+        }
+      ],
+      "use_cases": [
+        "display_ad",
+        "leaderboard"
+      ],
+      "personas": [
+        "general",
+        "enterprise"
+      ]
+    },
+    {
+      "id": "3902c53d-7b3e-4337-8583-e21382010545",
+      "name": "Display Single Image Ad 1 300x250",
+      "type": "static",
+      "category": "display_ad",
+      "category_name": "Display Ads - DG",
+      "elements": {
+        "text": [
+          "headline",
+          "button_text"
+        ],
+        "image": [
+          "background",
+          "image"
+        ]
+      },
+      "formats": [
+        {
+          "name": "medium-rectangle_300x250",
+          "width": 300,
+          "height": 250
+        }
+      ],
+      "use_cases": [
+        "display_ad",
+        "google_display"
+      ],
+      "personas": [
+        "general",
+        "enterprise"
+      ]
+    },
+    {
+      "id": "ee7bf7a8-55e4-408a-b384-7c9b3396c2ab",
+      "name": "Display Single Image Ad 2 300x250",
+      "type": "static",
+      "category": "display_ad",
+      "category_name": "Display Ads - DG",
+      "elements": {
+        "text": [
+          "headline",
+          "button_text"
+        ],
+        "image": [
+          "background",
+          "image",
+          "image_small"
+        ]
+      },
+      "formats": [
+        {
+          "name": "medium-rectangle_300x250",
+          "width": 300,
+          "height": 250
+        }
+      ],
+      "use_cases": [
+        "display_ad",
+        "google_display"
+      ],
+      "personas": [
+        "general",
+        "enterprise"
+      ]
+    },
+    {
+      "id": "82830fea-4be1-4c9c-8e3b-8d1f8f63a798",
+      "name": "Display Single Image Ad 300x250",
+      "type": "static",
+      "category": "display_ad",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "headline",
+          "button_text"
+        ],
+        "image": [
+          "background",
+          "image",
+          "image_small"
+        ]
+      },
+      "formats": [
+        {
+          "name": "medium-rectangle_300x250",
+          "width": 300,
+          "height": 250
+        }
+      ],
+      "use_cases": [
+        "display_ad",
+        "google_display"
+      ],
+      "personas": [
+        "general",
+        "enterprise"
+      ]
+    },
+    {
+      "id": "0251f087-3cf3-4fd3-b065-ea821fbf0f52",
+      "name": "Edge Compute",
+      "type": "static",
+      "category": "blog_featured",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "tb-text_2",
+          "proper_name"
+        ],
+        "image": [
+          "tb-image_1"
+        ]
+      },
+      "formats": [
+        {
+          "name": "facebook-featured",
+          "width": 1200,
+          "height": 628
+        },
+        {
+          "name": "linkedin-feed",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "blog_featured",
+        "linkedin_ad",
+        "facebook_ad"
+      ],
+      "personas": [
+        "technical",
+        "developer"
+      ]
+    },
+    {
+      "id": "2f5d9304-fbef-4be3-90cf-4522ad50e978",
+      "name": "Global #s og:image",
+      "type": "static",
+      "category": "og_image",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "tb-text_2",
+          "proper_name",
+          "tb-button_0"
+        ],
+        "image": [
+          "tb-image_1",
+          "tb-image_2",
+          "tb-image_0"
+        ]
+      },
+      "formats": [
+        {
+          "name": "facebook-featured",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "seo_meta",
+        "og_image"
+      ],
+      "personas": [
+        "general"
+      ]
+    },
+    {
+      "id": "f89c0861-cc0f-4b08-b3ff-66509a564515",
+      "name": "Global #s twitter:image",
+      "type": "static",
+      "category": "social",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "tb-text_2",
+          "proper_name",
+          "tb-button_0"
+        ],
+        "image": [
+          "tb-image_2",
+          "tb-image_1",
+          "tb-image_3",
+          "tb-image_0"
+        ]
+      },
+      "formats": [
+        {
+          "name": "facebook-featured",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "twitter_post",
+        "facebook_ad",
+        "social_post"
+      ],
+      "personas": [
+        "general"
+      ]
+    },
+    {
+      "id": "a593d0ef-c3f5-4253-898b-e4966105bd64",
+      "name": "how-to-text",
+      "type": "static",
+      "category": "blog_featured",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "text-send",
+          "text-reply"
+        ],
+        "image": [
+          "bg-telnyx-globe",
+          "message-bubble-two",
+          "message-bubble-1"
+        ]
+      },
+      "formats": [
+        {
+          "name": "resource-featured-image",
+          "width": 1020,
+          "height": 571
+        }
+      ],
+      "use_cases": [
+        "blog_featured"
+      ],
+      "personas": [
+        "general"
+      ]
+    },
+    {
+      "id": "0fbafb13-9035-41bd-bb46-9b634eeb030a",
+      "name": "LinkedIn Organic GIF",
+      "type": "animated",
+      "category": "social",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "title",
+          "subtext"
+        ],
+        "image": []
+      },
+      "formats": [
+        {
+          "name": "linkedin-release-notes",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "linkedin_post",
+        "animated",
+        "linkedin_ad",
+        "social_post"
+      ],
+      "personas": [
+        "general"
+      ]
+    },
+    {
+      "id": "2a3dbe1f-ae39-44a6-bf5a-f7ba7e140449",
+      "name": "LLM Library - Twitter Image",
+      "type": "static",
+      "category": "social",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "tb-text_2",
+          "proper_name",
+          "tb-button_0"
+        ],
+        "image": [
+          "tb-image_0"
+        ]
+      },
+      "formats": [
+        {
+          "name": "facebook-featured",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "twitter_post",
+        "facebook_ad",
+        "social_post"
+      ],
+      "personas": [
+        "developer",
+        "technical",
+        "ai_engineer"
+      ]
+    },
+    {
+      "id": "3d1c401e-98eb-491b-9830-49e89e374b47",
+      "name": "LLM Library Featured Image",
+      "type": "static",
+      "category": "product_page",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "tb-text_2",
+          "proper_name",
+          "tb-button_0"
+        ],
+        "image": [
+          "tb-image_1"
+        ]
+      },
+      "formats": [
+        {
+          "name": "facebook-featured",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "llm_library",
+        "product_page",
+        "facebook_ad"
+      ],
+      "personas": [
+        "developer",
+        "technical",
+        "ai_engineer"
+      ]
+    },
+    {
+      "id": "ab6dacaf-4f30-424a-9a30-bfcb3de71f23",
+      "name": "Native Ad ABM-copy",
+      "type": "animated",
+      "category": "display_ad",
+      "category_name": "Display Ads - DG",
+      "elements": {
+        "text": [],
+        "image": [
+          "image"
+        ]
+      },
+      "formats": [
+        {
+          "name": "native_ad_square_600x600",
+          "width": 600,
+          "height": 600
+        }
+      ],
+      "use_cases": [
+        "display_ad",
+        "animated"
+      ],
+      "personas": [
+        "general",
+        "enterprise"
+      ]
+    },
+    {
+      "id": "ded087a6-4ed6-4c4e-9735-b0a1cb60280d",
+      "name": "One off",
+      "type": "static",
+      "category": "blog_featured",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "tb-text_2",
+          "proper_name"
+        ],
+        "image": [
+          "tb-image_1"
+        ]
+      },
+      "formats": [
+        {
+          "name": "facebook-featured",
+          "width": 1200,
+          "height": 628
+        },
+        {
+          "name": "linkedin-feed",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "blog_featured",
+        "linkedin_ad",
+        "facebook_ad"
+      ],
+      "personas": [
+        "general"
+      ]
+    },
+    {
+      "id": "7b8da7d2-f380-4aa0-aa94-49471d41baef",
+      "name": "One off COPY",
+      "type": "static",
+      "category": "blog_featured",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "tb-text_2",
+          "proper_name"
+        ],
+        "image": [
+          "tb-image_1"
+        ]
+      },
+      "formats": [
+        {
+          "name": "facebook-featured",
+          "width": 1200,
+          "height": 628
+        },
+        {
+          "name": "linkedin-feed",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "blog_featured",
+        "linkedin_ad",
+        "facebook_ad"
+      ],
+      "personas": [
+        "general"
+      ]
+    },
+    {
+      "id": "251fe1b5-69ca-4cf1-9d6b-68341ab04b7e",
+      "name": "PoC",
+      "type": "static",
+      "category": "data_visualization",
+      "category_name": "Consumer Insight Panels",
+      "elements": {
+        "text": [
+          "headline"
+        ],
+        "image": []
+      },
+      "formats": [
+        {
+          "name": "bar-chart",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "data_visualization"
+      ],
+      "personas": [
+        "general"
+      ]
+    },
+    {
+      "id": "d80699fc-5680-43d2-a04e-b29d9e2f3def",
+      "name": "RC Post Featured Image",
+      "type": "static",
+      "category": "blog_featured",
+      "category_name": "n8n automation",
+      "elements": {
+        "text": [
+          "text_0",
+          "text_1"
+        ],
+        "image": [
+          "image_0",
+          "image_1",
+          "image_2"
+        ]
+      },
+      "formats": [
+        {
+          "name": "docs-to-strapi",
+          "width": 2040,
+          "height": 1142
+        }
+      ],
+      "use_cases": [
+        "blog_featured",
+        "resource_center"
+      ],
+      "personas": [
+        "general"
+      ]
+    },
+    {
+      "id": "2c95a690-13c7-4661-ada3-b4b1d53b6687",
+      "name": "rc-posts",
+      "type": "static",
+      "category": "blog_featured",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "lead",
+          "headline"
+        ],
+        "image": [
+          "bg-3",
+          "bg-2",
+          "bg-1"
+        ]
+      },
+      "formats": [
+        {
+          "name": "rc-featured",
+          "width": 2040,
+          "height": 1142
+        }
+      ],
+      "use_cases": [
+        "blog_featured",
+        "resource_center"
+      ],
+      "personas": [
+        "general"
+      ]
+    },
+    {
+      "id": "f18a3053-57cf-4245-ab33-06c5dad24efe",
+      "name": "rc-posts-mar-2026",
+      "type": "static",
+      "category": "blog_featured",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "lead",
+          "headline"
+        ],
+        "image": [
+          "bg-1"
+        ]
+      },
+      "formats": [
+        {
+          "name": "dark-mode",
+          "width": 2040,
+          "height": 1142
+        },
+        {
+          "name": "lime-3",
+          "width": 2040,
+          "height": 1142
+        },
+        {
+          "name": "side-by-side-cream",
+          "width": 2040,
+          "height": 1142
+        },
+        {
+          "name": "side-by-side-green",
+          "width": 2040,
+          "height": 1142
+        },
+        {
+          "name": "side-by-side-black",
+          "width": 2040,
+          "height": 1142
+        }
+      ],
+      "use_cases": [
+        "blog_featured",
+        "resource_center"
+      ],
+      "personas": [
+        "general"
+      ]
+    },
+    {
+      "id": "2f3bd587-3069-447c-a22f-f09080692bd8",
+      "name": "Release Note",
+      "type": "static",
+      "category": "release_note",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "proper_name",
+          "text_0"
+        ],
+        "image": [
+          "image_0"
+        ]
+      },
+      "formats": [
+        {
+          "name": "linkedin-feed",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "release_note",
+        "linkedin_ad",
+        "social_post"
+      ],
+      "personas": [
+        "developer",
+        "technical",
+        "product"
+      ]
+    },
+    {
+      "id": "759c770f-36e9-40fc-99c4-e3f1893c77dd",
+      "name": "Release Notes LinkedIn",
+      "type": "animated",
+      "category": "release_note",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "title",
+          "text_1"
+        ],
+        "image": []
+      },
+      "formats": [
+        {
+          "name": "linkedin-release-notes",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "linkedin_ad",
+        "release_note",
+        "animated",
+        "social_post"
+      ],
+      "personas": [
+        "developer",
+        "technical",
+        "product"
+      ]
+    },
+    {
+      "id": "4fe28725-0905-4744-b38b-058cc1cc9d4b",
+      "name": "Sales lab - featured-copy",
+      "type": "static",
+      "category": "blog_featured",
+      "category_name": "n8n automation",
+      "elements": {
+        "text": [
+          "text_0"
+        ],
+        "image": [
+          "image_0",
+          "image_1"
+        ]
+      },
+      "formats": [
+        {
+          "name": "blogfeature",
+          "width": 2000,
+          "height": 1047
+        }
+      ],
+      "use_cases": [
+        "sales_enablement",
+        "blog_featured"
+      ],
+      "personas": [
+        "sales",
+        "enterprise"
+      ]
+    },
+    {
+      "id": "d97d7446-3faf-4aca-90c4-3b1fcc349814",
+      "name": "Social - Test Run",
+      "type": "animated",
+      "category": "social",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "text_0"
+        ],
+        "image": [
+          "image_0"
+        ]
+      },
+      "formats": [
+        {
+          "name": "landscape-video",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "use_cases": [
+        "animated",
+        "social_post"
+      ],
+      "personas": [
+        "general"
+      ]
+    },
+    {
+      "id": "19909f72-34ea-405b-a7fa-8df83859ad7f",
+      "name": "Untitled",
+      "type": "static",
+      "category": "data_visualization",
+      "category_name": "n8n automation",
+      "elements": {
+        "text": [
+          "summary",
+          "text_9",
+          "text_1",
+          "text_2",
+          "text_4",
+          "text_6",
+          "text_8",
+          "percent_1",
+          "text_0",
+          "text_3",
+          "text_5",
+          "text_7",
+          "question_1"
+        ],
+        "image": [
+          "image_0",
+          "image_1"
+        ]
+      },
+      "formats": [
+        {
+          "name": "linkedin-feed",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "data_visualization",
+        "linkedin_ad"
+      ],
+      "personas": [
+        "general"
+      ]
+    },
+    {
+      "id": "03bdef36-efba-4ffb-aef1-ffce16273f66",
+      "name": "x-release-notes",
+      "type": "animated",
+      "category": "social",
+      "category_name": "Uncategorized",
+      "elements": {
+        "text": [
+          "text_1",
+          "text_0"
+        ],
+        "image": []
+      },
+      "formats": [
+        {
+          "name": "linkedin-release-notes",
+          "width": 1200,
+          "height": 628
+        }
+      ],
+      "use_cases": [
+        "animated",
+        "twitter_post",
+        "linkedin_ad",
+        "social_post"
+      ],
+      "personas": [
+        "developer",
+        "technical",
+        "product"
+      ]
+    }
+  ],
+  "generated_at": "2026-03-05T01:20:00Z",
+  "total": 29
+}

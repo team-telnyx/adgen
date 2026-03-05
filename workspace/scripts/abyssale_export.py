@@ -35,13 +35,65 @@ def api_headers(key: str) -> dict:
     return {"x-api-key": key, "Content-Type": "application/json"}
 
 
+def _request_with_retry(method: str, url: str, max_retries: int = 1,
+                        retry_delay: float = 2.0, **kwargs) -> requests.Response:
+    """HTTP request with retry logic and detailed error reporting."""
+    last_exc = None
+    for attempt in range(1 + max_retries):
+        try:
+            resp = requests.request(method, url, **kwargs)
+            if resp.status_code >= 500 and attempt < max_retries:
+                log("WARN", f"Server error {resp.status_code}, retrying in {retry_delay}s",
+                    url=url[:80], attempt=attempt + 1)
+                time.sleep(retry_delay)
+                continue
+            if resp.status_code >= 400:
+                body = resp.text[:500] if resp.text else "(empty)"
+                log("ERROR", f"API error {resp.status_code}: {body}",
+                    url=url[:80], method=method)
+            resp.raise_for_status()
+            return resp
+        except requests.ConnectionError as e:
+            last_exc = e
+            if attempt < max_retries:
+                log("WARN", f"Connection error, retrying in {retry_delay}s: {e}",
+                    url=url[:80])
+                time.sleep(retry_delay)
+            else:
+                raise
+        except requests.Timeout as e:
+            last_exc = e
+            if attempt < max_retries:
+                log("WARN", f"Timeout, retrying in {retry_delay}s", url=url[:80])
+                time.sleep(retry_delay)
+            else:
+                raise
+    raise last_exc  # type: ignore[misc]
+
+
+def validate_hero_url(url: str) -> bool:
+    """Check that the hero image URL is accessible before sending to Abyssale."""
+    if not url:
+        return False
+    try:
+        resp = requests.head(url, timeout=10, allow_redirects=True)
+        if resp.status_code < 400:
+            log("INFO", f"Hero URL validated OK ({resp.status_code})", url=url[:80])
+            return True
+        log("WARN", f"Hero URL returned {resp.status_code}", url=url[:80])
+        return False
+    except Exception as e:
+        log("WARN", f"Hero URL unreachable: {e}", url=url[:80])
+        return False
+
+
 def fetch_template(template_id: str, key: str) -> dict:
     """Fetch template details to discover elements and formats."""
     log("INFO", "Fetching template", template_id=template_id)
-    resp = requests.get(
-        f"{BASE}/templates/{template_id}", headers=api_headers(key), timeout=30
+    resp = _request_with_retry(
+        "GET", f"{BASE}/templates/{template_id}",
+        headers=api_headers(key), timeout=30
     )
-    resp.raise_for_status()
     return resp.json()
 
 
@@ -102,14 +154,17 @@ def smart_map_elements(brief: dict, hero_url: str | None, discovered: dict) -> d
                     mapped[name] = {"payload": brief["subhead"]}
                     log("INFO", f"Mapped text {name} → subhead (inferred)")
 
-    # Map hero image to first non-logo image element
+    # Map hero image to first non-logo image element (validate first)
     if hero_url:
-        for el in discovered.get("image", []):
-            name = el["name"]
-            if "logo" not in name.lower():
-                mapped[name] = {"image_url": hero_url}
-                log("INFO", f"Mapped image {name} → hero_url")
-                break
+        if validate_hero_url(hero_url):
+            for el in discovered.get("image", []):
+                name = el["name"]
+                if "logo" not in name.lower():
+                    mapped[name] = {"image_url": hero_url}
+                    log("INFO", f"Mapped image {name} → hero_url")
+                    break
+        else:
+            log("WARN", "Skipping hero image mapping — URL not accessible")
 
     return mapped
 
@@ -120,8 +175,8 @@ def generate_banner(template_id: str, format_name: str,
     log("INFO", "Generating banner", template_id=template_id, format=format_name)
     t0 = time.monotonic()
 
-    resp = requests.post(
-        f"{BASE}/banner-builder/{template_id}/generate",
+    resp = _request_with_retry(
+        "POST", f"{BASE}/banner-builder/{template_id}/generate",
         headers=api_headers(key),
         json={
             "template_format_name": format_name,
@@ -129,11 +184,12 @@ def generate_banner(template_id: str, format_name: str,
         },
         timeout=120,
     )
-    resp.raise_for_status()
     result = resp.json()
 
     elapsed = time.monotonic() - t0
-    log("INFO", f"Abyssale responded in {elapsed:.1f}s")
+    log("INFO", f"Abyssale responded in {elapsed:.1f}s",
+        banner_id=result.get("id", "?"),
+        cdn_url=result.get("file", {}).get("cdn_url", "")[:80])
     return result
 
 
@@ -259,12 +315,21 @@ def main():
 
     except requests.HTTPError as e:
         body = ""
+        status = None
         if e.response is not None:
             body = e.response.text[:500]
-        log("ERROR", f"API error: {e} — {body}")
+            status = e.response.status_code
+        log("ERROR", f"Abyssale API HTTP error",
+            status=status, error=str(e), response_body=body)
+        sys.exit(1)
+    except requests.ConnectionError as e:
+        log("ERROR", f"Connection failed to Abyssale API: {e}")
+        sys.exit(1)
+    except requests.Timeout as e:
+        log("ERROR", f"Abyssale API request timed out: {e}")
         sys.exit(1)
     except Exception as e:
-        log("ERROR", f"Export failed: {e}")
+        log("ERROR", f"Export failed: {type(e).__name__}: {e}")
         sys.exit(1)
 
 

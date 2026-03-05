@@ -226,6 +226,26 @@ def run_pipeline(cfg: dict) -> dict:
             log.error("video pipeline failed: %s", e)
             raise
 
+    # Auto-select template if not specified
+    if not template_id and output_type == "static":
+        log.info("no template specified, auto-selecting via select_template.py")
+        try:
+            selector_input = {
+                "use_case": brief.get("use_case", "blog_featured"),
+                "persona": brief.get("persona", "general"),
+                "format": formats[0] if formats else "facebook-featured",
+                "has_hero_image": hero_url is not None,
+            }
+            sel_result = run_script("select_template.py", selector_input)
+            if isinstance(sel_result, list) and len(sel_result) > 0:
+                template_id = sel_result[0]["id"]
+                log.info("auto-selected template=%s name=%s score=%s",
+                         template_id, sel_result[0].get("name"), sel_result[0].get("score"))
+            else:
+                log.warning("select_template.py returned no matches")
+        except Exception as e:
+            log.warning("auto-select failed: %s — proceeding without template", e)
+
     # Steps 3-7: Abyssale rendering (static output)
     abyssale_ok = False
     if template_id:
