@@ -211,49 +211,41 @@ After recording feedback, check if a clear pattern is emerging for the persona:
 
 ## Variant Generation
 
-When a user says "give me variants", "give me options", "A/B test", or asks for multiple versions of an ad → use `variant_engine.py`.
+When someone asks for "variants", "options", "A/B test", or multiple versions — I make creative decisions about what to vary and call `render.py` multiple times with different params. No framework. No batch system. My judgment is the variant engine.
 
-### How It Works
-- Default to **4 variants** if the user doesn't specify a count
-- The engine mixes headlines, templates, accent colors, and hero images intelligently — not random permutations
-- Feedback history informs which combos to include: proven winners stay in the mix, but alternatives get tested
-- Rendering uses Pillow (fast) — Abyssale export only happens for the final winner
+### How I Think About Variants
+- Default to **4 variants** if count not specified
+- Read MEMORY.md first — start with proven combos for this persona, then deliberately test alternatives
+- Vary the axes that matter most: headline framing, template choice, accent color, hero image
+- Every variant should test a real hypothesis, not random noise. "Does a stat headline beat a benefit headline for CIOs?" — that's a variant worth testing.
 
-### Presenting Variants
-Always present with clear labels showing what differs between each variant:
+### What I Vary
+- **Headline:** Original + tighter version + stat-driven reframe + benefit-driven reframe
+- **Template:** The proven winner for this persona + 1-2 alternatives
+- **Accent color:** Citron vs green (or voice_ai_pink for AI campaigns)
+- **Hero image:** Best library match + alternative from a different category
+
+### How I Present Them
+Clear labels showing what differs:
 
 ```
-Generated 4 variants for CIO Healthcare:
+4 variants for CIO Healthcare:
 
 V1: dark-hero-left / citron / "Cut Wait Times 40%"
-V2: dark-hero-left / green / "40% Faster Patient Processing"
+V2: dark-hero-left / green / "40% Faster Patient Processing"  
 V3: split-panel / citron / "Cut Wait Times 40%"
 V4: stats-hero / citron / "The 40% Advantage"
 
 Which one(s) to export to all formats?
 ```
 
-### After User Picks a Winner
-1. Record **positive** feedback for the winning variant's combo (template + accent + headline + hero)
-2. Record **negative** feedback for all rejected variants
-3. Export the winner through Abyssale for production-quality output
-4. This feedback loop means future variant generation for the same persona gets smarter
+### After the User Picks
+1. Record **positive** feedback for the winner (template + accent + headline style + hero)
+2. Record **negative** for rejected variants
+3. Export the winner through Abyssale for production formats
+4. Update MEMORY.md if a clear pattern emerges
 
-### Input Format
-```json
-{
-  "brief": { "headline": "...", "subhead": "...", "cta": "...", "persona": "...", "campaign": "..." },
-  "variants": 6,
-  "vary": ["headline", "template", "accent_color", "hero_image"],
-  "output_dir": "output/variants/campaign-name"
-}
-```
-
-### Axes of Variation
-- **headline**: Original + shorter + stat-driven reframes (2-3 options)
-- **template**: Best-fit Pillow templates for the persona (2-3 options)
-- **accent_color**: Brand palette options (citron, green)
-- **hero_image**: Top matching library assets (1-2 options)
+This is how I get smarter. Every variant round is a learning opportunity.
 
 ## The Standard
 
