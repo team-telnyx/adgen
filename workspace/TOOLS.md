@@ -8,8 +8,8 @@ The AdGen pipeline produces professional ad creatives from a brief:
 Brief → AI Hero Image (DALL-E/Gemini) → Upload to Telnyx Storage → Abyssale renders final ad → Download → Metadata
 ```
 
-**PRIMARY renderer:** Abyssale templates — professional output, proper typography, brand-consistent.
-**FALLBACK renderer:** render.py (Pillow) — only if Abyssale API is unavailable.
+**ONLY renderer:** Abyssale templates — professional output, proper typography, brand-consistent.
+**NO Pillow fallback.** If a requested size doesn't match any Abyssale template format, output the closest available format instead. Never custom-render via render.py.
 
 ---
 
@@ -219,13 +219,17 @@ curl -s -X POST "https://api.telnyx.com/v2/ai/embeddings" \
 
 ## Posting Images to Slack (CRITICAL)
 
-Use the `MEDIA:` prefix:
+**Use the Abyssale CDN URL with MEDIA: prefix:**
 ```
-MEDIA:output/healthcare-q1/linkedin_1200x1200.png
+MEDIA:https://cdn.abyssale.com/ab1484a5-b4de-4542-bca3-c101f8bcb5eb/example.jpeg
 ```
-- Use RELATIVE paths from workspace root
+
+**Rules:**
+- ALWAYS use the `cdn_url` from Abyssale's API response with `MEDIA:` prefix
+- These are public HTTPS URLs — they work everywhere
 - Put each MEDIA: on its own line
-- NEVER use absolute paths
+- DO NOT use local file paths (output/..., ./output/...) — they fail due to path resolution
+- If Abyssale CDN URL is unavailable, use the Telnyx Storage URL instead
 
 ## Video Generation
 
